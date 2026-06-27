@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>训练计划 · 推拉蹲</title>
+<style>
+:root {
+  --bg: #f6f8fa;
+  --surface: #ffffff;
+  --surface-hover: #f3f4f6;
+  --border: #d8dee4;
+  --text: #1f2328;
+  --text2: #656d76;
+  --accent: #0969da;
+  --accent-hover: #0860ca;
+  --accent2: #1a7f37;
+  --accent2-hover: #166b2e;
+  --gym: #0969da;
+  --warn: #9a6700;
+  --danger: #cf222e;
+  --core: #8250df;
+  --correct: #1b7c83;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow-sm: 0 1px 2px rgba(31,35,40,.04), 0 1px 0 rgba(31,35,40,.06);
+  --shadow-md: 0 2px 8px rgba(31,35,40,.08), 0 1px 2px rgba(31,35,40,.06);
+  --shadow-lg: 0 4px 16px rgba(31,35,40,.1), 0 2px 4px rgba(31,35,40,.06);
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; scroll-behavior: smooth; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: 80px;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Header ── */
+header {
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  padding: 16px 16px 12px;
+  position: sticky; top: 0; z-index: 10;
+}
+header .top-row { display: flex; justify-content: space-between; align-items: center; }
+header h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -.01em; }
+header .phase-badge {
+  background: var(--accent); color: #fff;
+  padding: 4px 12px; border-radius: 20px;
+  font-size: 0.75rem; font-weight: 600;
+  box-shadow: 0 1px 2px rgba(9,105,218,.25);
+}
+header .week-row {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 10px; font-size: 0.85rem; color: var(--text2);
+}
+header .week-row button {
+  background: var(--bg); color: var(--text); border: 1px solid var(--border);
+  width: 30px; height: 30px; border-radius: 50%;
+  font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+header .week-row button:hover { background: var(--surface-hover); }
+header .week-row button:active { background: var(--accent); border-color: var(--accent); color: #fff; }
+	header .week-row .today-btn {
+	  width: auto; padding: 0 14px; border-radius: 14px; font-size: 0.75rem;
+	  font-weight: 600; white-space: nowrap; margin-left: auto;
+	  background: var(--accent2); color: #fff; border-color: var(--accent2);
+	  opacity: 0.85; transition: opacity .15s;
+	}
+	header .week-row .today-btn:hover { opacity: 1; }
+	header .week-row .today-btn:active { background: var(--accent2-hover); border-color: var(--accent2-hover); opacity: 1; }
+
+/* ── Day Navigation ── */
+.day-nav {
+  display: flex; gap: 6px; padding: 10px 14px;
+  background: var(--bg); overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 86px; z-index: 9;
+  scrollbar-width: none;
+}
+.day-nav::-webkit-scrollbar { display: none; }
+.day-nav button {
+  flex: 0 0 auto; padding: 9px 16px; border-radius: 22px;
+  border: 1.5px solid var(--border); background: var(--surface);
+  color: var(--text2); font-size: 0.8rem; cursor: pointer;
+  white-space: nowrap; transition: all .2s;
+  box-shadow: var(--shadow-sm);
+}
+.day-nav button:hover { border-color: var(--accent); color: var(--accent); }
+.day-nav button.active {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+  font-weight: 600; box-shadow: 0 2px 6px rgba(9,105,218,.3);
+}
+.day-nav button.today {
+  border-color: var(--accent2); color: var(--accent2);
+  box-shadow: 0 0 0 2px rgba(26,127,55,.12);
+}
+
+/* ── Main Content ── */
+main { padding: 16px 14px; }
+.day-header { margin-bottom: 16px; }
+.day-header h2 { font-size: 1.2rem; font-weight: 700; letter-spacing: -.01em; }
+.day-header .meta { display: flex; gap: 10px; align-items: center; margin-top: 6px; font-size: 0.8rem; }
+.day-header .location {
+  padding: 3px 10px; border-radius: 12px; font-weight: 600; font-size: 0.78rem;
+  background: rgba(9,105,218,.1); color: var(--gym);
+}
+.day-header .date-str { color: var(--text2); font-weight: 500; }
+
+/* ── Exercise Cards ── */
+.exercise-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px; margin-bottom: 10px;
+  cursor: pointer; transition: all .2s ease;
+  box-shadow: var(--shadow-sm);
+}
+.exercise-card:hover { border-color: var(--accent); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.exercise-card:active { background: var(--surface-hover); transform: none; }
+.exercise-card.superset-card {
+  border-left: 4px solid var(--warn);
+}
+.exercise-card.expanded { border-color: var(--accent); box-shadow: var(--shadow-md); }
+.exercise-card .ex-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.exercise-card .ex-name { font-weight: 600; font-size: 0.95rem; line-height: 1.3; }
+.exercise-card .ex-cat {
+  font-size: 0.68rem; padding: 3px 10px; border-radius: 10px;
+  background: rgba(9,105,218,.08); color: var(--accent);
+  flex-shrink: 0; margin-left: 8px; font-weight: 700;
+  letter-spacing: .02em;
+}
+.exercise-card .ex-cat.core { background: rgba(130,80,223,.1); color: var(--core); }
+.exercise-card .ex-cat.correct { background: rgba(27,124,131,.1); color: var(--correct); }
+.exercise-card .ex-target {
+  display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 8px;
+  font-size: 0.78rem; color: var(--text2);
+}
+.exercise-card .ex-target span {
+  white-space: nowrap; display: inline-flex; align-items: center; gap: 2px;
+}
+.exercise-card .ex-notes {
+  font-size: 0.76rem; color: var(--text2); margin-top: 4px; font-style: italic;
+  line-height: 1.4;
+}
+.exercise-card .ex-superset {
+  font-size: 0.7rem; color: var(--warn); margin-top: 2px; font-weight: 600;
+}
+.exercise-card .record-area {
+  display: none; margin-top: 14px; border-top: 1px solid var(--border); padding-top: 14px;
+}
+.exercise-card.expanded .record-area { display: block; animation: fadeIn .2s ease; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── Set Rows ── */
+.set-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+}
+.set-row .set-label {
+  font-size: 0.78rem; color: var(--text2); width: 26px; flex-shrink: 0;
+  font-weight: 600; text-align: center;
+}
+.set-row input {
+  background: var(--bg); border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text); padding: 9px 8px; font-size: 0.85rem; width: 0; flex: 1;
+  text-align: center; min-width: 0; transition: all .15s;
+  font-family: var(--font);
+}
+.set-row input:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(9,105,218,.12);
+}
+.set-row .input-label { font-size: 0.7rem; color: var(--text2); flex-shrink: 0; font-weight: 500; }
+.set-row .set-done, .set-row .set-done-btn {
+  width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border);
+  background: transparent; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 0.85rem;
+  transition: all .15s; color: transparent;
+}
+.set-row .set-done:hover, .set-row .set-done-btn:hover { border-color: var(--accent2); background: rgba(26,127,55,.08); }
+.set-row .set-done.checked, .set-row .set-done-btn.checked {
+  background: var(--accent2); border-color: var(--accent2); color: #fff;
+  box-shadow: 0 1px 4px rgba(26,127,55,.3);
+}
+.set-row.has-data .set-done, .set-row.has-data .set-done-btn { color: var(--text2); }
+.set-row.has-data .set-done:hover, .set-row.has-data .set-done-btn:hover { color: var(--accent2); }
+
+/* ── Record Inputs ── */
+.ex-notes-input {
+  width: 100%; background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text); padding: 10px 12px;
+  font-size: 0.8rem; margin-top: 4px; resize: vertical; min-height: 38px;
+  font-family: var(--font); transition: all .15s;
+}
+.ex-notes-input:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(9,105,218,.12);
+}
+.ex-notes-input::placeholder { color: var(--text2); opacity: .7; }
+.add-set-btn {
+  background: var(--bg); border: 1.5px dashed var(--border); color: var(--text2);
+  padding: 8px 14px; border-radius: var(--radius-sm); font-size: 0.78rem;
+  cursor: pointer; margin-top: 6px; transition: all .15s; width: 100%;
+  font-weight: 500;
+}
+.add-set-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(9,105,218,.04); }
+
+/* ── Save Button ── */
+.save-btn {
+  display: block; width: 100%; padding: 15px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  color: #fff; border: none;
+  border-radius: var(--radius); font-size: 1rem; font-weight: 700;
+  cursor: pointer; margin: 18px 0; transition: all .2s;
+  box-shadow: 0 2px 8px rgba(9,105,218,.25);
+  letter-spacing: .02em;
+}
+.save-btn:hover { box-shadow: 0 4px 16px rgba(9,105,218,.35); transform: translateY(-1px); }
+.save-btn:active { opacity: .9; transform: none; }
+.save-btn:disabled { opacity: .4; box-shadow: none; }
+.save-feedback {
+  text-align: center; font-size: 0.85rem; padding: 10px;
+  border-radius: var(--radius-sm); margin-bottom: 14px; font-weight: 500;
+}
+.save-feedback.success { background: rgba(26,127,55,.1); color: var(--accent2); }
+
+/* ── Bottom Navigation ── */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--surface); border-top: 1px solid var(--border);
+  display: flex; z-index: 20;
+  box-shadow: 0 -1px 4px rgba(31,35,40,.06);
+}
+.bottom-nav button {
+  flex: 1; padding: 10px 8px 14px; background: transparent; border: none;
+  color: var(--text2); font-size: 0.72rem; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  transition: color .15s; position: relative;
+}
+.bottom-nav button .nav-icon { font-size: 1.25rem; transition: transform .15s; }
+.bottom-nav button.active { color: var(--accent); }
+.bottom-nav button.active .nav-icon { transform: scale(1.1); }
+.bottom-nav button.active::after {
+  content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 24px; height: 3px; background: var(--accent); border-radius: 0 0 3px 3px;
+}
+
+/* ── History View ── */
+.history-view { display: none; }
+.history-view.active { display: block; }
+.history-summary { display: flex; gap: 10px; margin-bottom: 18px; }
+.history-summary .stat {
+  flex: 1; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 12px; text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+.history-summary .stat .val { font-size: 1.5rem; font-weight: 700; color: var(--accent); line-height: 1.1; }
+.history-summary .stat .lbl { font-size: 0.7rem; color: var(--text2); margin-top: 4px; font-weight: 500; }
+.history-list .history-item {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px; margin-bottom: 10px;
+  cursor: pointer; transition: all .15s; box-shadow: var(--shadow-sm);
+}
+.history-list .history-item:hover { border-color: var(--accent); box-shadow: var(--shadow-md); }
+.history-item .hi-date { font-weight: 600; font-size: 0.95rem; }
+.history-item .hi-day { font-size: 0.8rem; color: var(--text2); margin-top: 3px; }
+.history-item .hi-exercises { font-size: 0.78rem; color: var(--text2); margin-top: 4px; }
+.history-item .hi-records { font-size: 0.82rem; color: var(--accent2); margin-top: 3px; font-weight: 500; }
+
+/* ── History Detail Overlay ── */
+.history-detail-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5);
+  z-index: 30; justify-content: center; align-items: flex-end;
+  backdrop-filter: blur(2px);
+}
+.history-detail-overlay.active { display: flex; animation: fadeIn .2s ease; }
+.history-detail-panel {
+  background: var(--surface); border-radius: 16px 16px 0 0;
+  width: 100%; max-height: 80vh; overflow-y: auto; padding: 24px 18px;
+  box-shadow: 0 -4px 24px rgba(0,0,0,.12);
+}
+.history-detail-panel h3 { margin-bottom: 14px; font-size: 1.1rem; }
+.history-detail-panel .close-btn {
+  position: sticky; top: 0; float: right;
+  background: var(--bg); border: 1px solid var(--border); color: var(--text);
+  width: 34px; height: 34px; border-radius: 50%; font-size: 1rem;
+  cursor: pointer; transition: all .15s; z-index: 1;
+}
+.history-detail-panel .close-btn:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
+.hd-exercise {
+  margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border);
+}
+.hd-exercise:last-child { border-bottom: none; }
+.hd-exercise .hd-name { font-weight: 600; font-size: 0.95rem; }
+.hd-exercise .hd-sets { font-size: 0.82rem; color: var(--text2); margin-top: 6px; line-height: 1.6; }
+.hd-exercise .hd-notes { font-size: 0.78rem; color: var(--warn); margin-top: 4px; }
+
+/* ── Settings View ── */
+.settings-view { display: none; }
+.settings-view.active { display: block; }
+.settings-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px; margin-bottom: 14px;
+  box-shadow: var(--shadow-sm);
+}
+.settings-card h3 { font-size: 0.95rem; margin-bottom: 12px; font-weight: 700; }
+.settings-card label { display: block; font-size: 0.8rem; color: var(--text2); margin-bottom: 5px; font-weight: 500; }
+.settings-card input, .settings-card select {
+  width: 100%; background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text); padding: 10px 12px;
+  font-size: 0.9rem; margin-bottom: 12px; font-family: var(--font);
+  transition: all .15s;
+}
+.settings-card input:focus, .settings-card select:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(9,105,218,.12);
+}
+.settings-card .day-check-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.settings-card .day-check {
+  padding: 9px 16px; border: 1.5px solid var(--border); border-radius: 20px;
+  font-size: 0.8rem; cursor: pointer; user-select: none; transition: all .15s;
+  font-weight: 500; background: var(--bg);
+}
+.settings-card .day-check:hover { border-color: var(--accent); }
+.settings-card .day-check.checked {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+  box-shadow: 0 1px 4px rgba(9,105,218,.25);
+}
+.settings-card button {
+  padding: 10px 20px; background: var(--accent); color: #fff;
+  border: none; border-radius: var(--radius-sm); font-size: 0.9rem;
+  font-weight: 600; cursor: pointer; transition: all .15s;
+  box-shadow: 0 1px 4px rgba(9,105,218,.2);
+}
+.settings-card button:hover { box-shadow: 0 2px 8px rgba(9,105,218,.3); }
+.export-btn {
+  padding: 9px 18px; background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.82rem;
+  cursor: pointer; margin-top: 8px; transition: all .15s; font-weight: 500;
+}
+.export-btn:hover { background: var(--surface-hover); }
+
+/* 1RM 极限重量输入 */
+.one-rm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
+.one-rm-item { display: flex; align-items: center; gap: 6px; }
+.one-rm-item label { margin-bottom: 0 !important; white-space: nowrap; min-width: 70px; font-size: 0.78rem !important; }
+.one-rm-item input {
+  width: 70px !important; margin-bottom: 0 !important; padding: 6px 8px !important;
+  font-size: 0.82rem !important; text-align: center;
+}
+.one-rm-item .unit { font-size: 0.75rem; color: var(--text2); flex-shrink: 0; }
+
+/* 推荐重量标签 */
+.rec-weight {
+  background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+  color: #2e7d32; font-size: 0.78rem; font-weight: 600;
+  padding: 2px 10px; border-radius: 14px; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 3px;
+}
+.rec-weight.deload { background: linear-gradient(135deg, #fff3e0, #ffe0b2); color: #e65100; }
+.progression-badge {
+  background: var(--accent); color: #fff; font-size: 0.68rem; font-weight: 700;
+  padding: 1px 7px; border-radius: 10px; margin-left: 2px;
+  animation: pulse-badge 1.5s ease-in-out infinite;
+}
+@keyframes pulse-badge {
+  0%,100% { opacity: 1; } 50% { opacity: 0.6; }
+}
+
+/* ── Empty State ── */
+.empty-state {
+  text-align: center; padding: 40px 16px; color: var(--text2);
+}
+.empty-state .icon { font-size: 3.5rem; margin-bottom: 12px; opacity: .6; }
+
+/* ── Warmup Block ── */
+.warmup-block {
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius); padding: 12px 16px; margin-bottom: 12px;
+  font-size: 0.82rem; color: var(--text2); cursor: pointer;
+  user-select: none; transition: all .15s; box-shadow: var(--shadow-sm);
+}
+.warmup-block:hover { box-shadow: var(--shadow-md); }
+.warmup-block .warmup-header { display: flex; justify-content: space-between; align-items: center; }
+.warmup-block .warmup-header strong { color: var(--accent); font-size: 0.9rem; }
+.warmup-block .warmup-toggle {
+  font-size: 0.72rem; color: var(--text2); background: var(--bg);
+  padding: 2px 10px; border-radius: 10px; transition: all .15s;
+}
+.warmup-block .warmup-text { margin-top: 10px; line-height: 1.7; }
+.warmup-block .warmup-text .warmup-step { padding: 3px 0; }
+.warmup-block .warmup-text .warmup-step .step-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; line-height: 22px;
+  background: var(--accent); color: #fff; border-radius: 50%;
+  text-align: center; font-size: 0.7rem; margin-right: 8px;
+  font-weight: 600; flex-shrink: 0; vertical-align: middle;
+}
+.warmup-block.collapsed .warmup-text { display: none; }
+
+/* ── Auto-save Indicator ── */
+.auto-save-indicator {
+  text-align: center; font-size: 0.72rem; color: var(--accent2);
+  padding: 6px 0 0; opacity: 0; transition: opacity .3s;
+  font-weight: 500; height: 0; overflow: hidden;
+}
+.auto-save-indicator.show { opacity: 1; height: auto; }
+
+/* ── Record Hint ── */
+.record-hint {
+  text-align: center; font-size: 0.72rem; color: var(--text2);
+  padding: 10px 0 0; opacity: .7;
+}
+.exercise-card.expanded .record-hint { display: none; }
+
+/* ── Completion Bar ── */
+.completion-bar {
+  height: 6px; background: var(--border); border-radius: 3px;
+  margin: 6px 0 18px; overflow: hidden;
+}
+.completion-bar .fill {
+  height: 100%; background: linear-gradient(90deg, var(--accent2), var(--accent2-hover));
+  border-radius: 3px; transition: width .4s ease;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="top-row">
+    <h1>💪 训练计划</h1>
+    <span class="phase-badge" id="phaseBadge">阶段一</span>
+  </div>
+  <div class="week-row">
+    <button id="prevWeek">◀</button>
+    <span id="weekLabel">第1周</span>
+    <button id="nextWeek">▶</button>
+    <button class="today-btn" id="todayBtn" title="回到本周">📍 今天</button>
+	    <span style="font-size:0.8rem;" id="todayHint"></span>
+  </div>
+</header>
+
+<nav class="day-nav" id="dayNav"></nav>
+
+<main>
+  <!-- Training View -->
+  <div id="trainingView">
+    <div class="day-header">
+      <h2 id="dayTitle">Day 1：下肢力量主导</h2>
+      <div class="meta">
+        <span class="location gym" id="dayLocation">健身房</span>
+        <span class="date-str" id="dayDate"></span>
+      </div>
+    </div>
+    <div class="completion-bar"><div class="fill" id="completionFill" style="width:0%"></div></div>
+    <div style="text-align:right;font-size:0.72rem;color:var(--text2);margin:-12px 0 14px;" id="completionLabel"></div>
+    <div id="warmupBlock" class="warmup-block"></div>
+    <div id="exerciseList"></div>
+    <button class="save-btn" id="saveBtn">💾 保存训练记录</button>
+    <div class="auto-save-indicator" id="autoSaveIndicator">✅ 已自动保存</div>
+    <div id="saveFeedback"></div>
+  </div>
+
+  <!-- History View -->
+  <div class="history-view" id="historyView">
+    <div class="history-summary" id="historySummary"></div>
+    <h3 style="margin-bottom:14px;font-weight:700;">📋 训练历史</h3>
+    <div id="historyList"></div>
+  </div>
+
+  <!-- Settings View -->
+  <div class="settings-view" id="settingsView">
+    <div class="settings-card">
+      <h3>📆 训练起始日期</h3>
+      <label>计划开始日期（用于自动计算当前周）</label>
+      <input type="date" id="startDateInput">
+    </div>
+    <div class="settings-card">
+      <h3>📅 每周训练日</h3>
+      <label>勾选你固定训练的日子（用于自动匹配）</label>
+      <div class="day-check-group" id="weekdayChecks"></div>
+    </div>
+    <div class="settings-card">
+      <h3>🏋️ 极限重量 (1RM)</h3>
+      <label>填入各动作的极限重量，自动计算每次训练的推荐重量</label>
+      <div class="one-rm-grid" id="oneRmGrid"></div>
+    </div>
+    <div class="settings-card">
+      <h3>📤 数据管理</h3>
+      <button class="export-btn" id="exportBtn">导出训练数据 (JSON)</button>
+      <button class="export-btn" id="clearBtn" style="margin-left:8px;background:var(--danger);color:#fff;border-color:var(--danger);">🗑 清除所有记录</button>
+    </div>
+  </div>
+</main>
+
+<nav class="bottom-nav">
+  <button class="active" data-tab="training">
+    <span class="nav-icon">📋</span> 训练
+  </button>
+  <button data-tab="history">
+    <span class="nav-icon">📊</span> 历史
+  </button>
+  <button data-tab="settings">
+    <span class="nav-icon">⚙️</span> 设置
+  </button>
+</nav>
+
+<!-- History detail overlay -->
+<div class="history-detail-overlay" id="historyOverlay">
+  <div class="history-detail-panel" id="historyDetail"></div>
+</div>
+
+<script>
+// ============================================================================
+// 训练计划数据
+// ============================================================================
+const PLAN = {
+  meta: { name: "推拉蹲 力量训练", totalWeeks: 12, phases: 3 },
+  schedule: {
+    day1: { weekday: 1, label: "周一", short: "推A", name: "推A — 卧推主导", focus: "胸+前中束+三头", location: "gym" },
+    day2: { weekday: 2, label: "周二", short: "拉A", name: "拉A — 引体向上主导", focus: "背阔+二头+后束", location: "gym" },
+    day3: { weekday: 4, label: "周四", short: "蹲", name: "蹲 — 深蹲主导", focus: "下肢全面", location: "gym" },
+    day4: { weekday: 5, label: "周五", short: "推B", name: "推B — 推举主导", focus: "肩+三头+上胸", location: "gym" },
+    day5: { weekday: 6, label: "周六", short: "拉B", name: "拉B — 硬拉主导", focus: "后链+背厚度", location: "gym" }
+  },
+  phases: [
+    { // Phase 1: weeks 1-4 — 动作模式建立
+      id: 1, name: "动作模式建立", weeks: [1,2,3,4], deloadWeek: 4,
+      warmup: "RAMP热身：跳绳/风阻单车3分钟 → 臀桥+蚌式开合+弹力带肩环绕+猫牛式5分钟 → 髋/胸椎/踝关节环绕5分钟 → 轻热身组2分钟",
+      days: {
+        day1: { // 推A — 卧推主导
+          exercises: [
+            { id:"a", name:"哑铃平板卧推", cat:"主项", sets:3, reps:"10-12", rest:90, rpe:"6-7", note:"肩胛全程收紧，不弹胸" },
+            { id:"b", name:"上斜哑铃卧推（30°）", cat:"主项", sets:3, reps:"10-12", rest:90, rpe:"7", note:"上胸发力感，不过伸腰椎" },
+            { id:"c", name:"坐姿哑铃推举", cat:"主项", sets:3, reps:"10-12", rest:90, rpe:"7", note:"核心绷紧，不过伸腰椎" },
+            { id:"d", name:"绳索三头下压", cat:"辅项", sets:3, reps:"12-15", rest:60, rpe:"7", note:"肘贴身体，顶峰收缩" },
+            { id:"e", name:"哑铃侧平举", cat:"辅项", sets:3, reps:"12-15", rest:45, rpe:"-", note:"轻重量，慢速控制", superset:1 },
+            { id:"e2", name:"弹力带面拉", cat:"纠正", sets:3, reps:"15", rest:60, rpe:"-", note:"上臂外旋+水平外展", superset:1 }
+          ]
+        },
+        day2: { // 拉A — 引体向上主导
+          exercises: [
+            { id:"a", name:"引体向上（或弹力带辅助/高位下拉）", cat:"主项", sets:3, reps:"6-10", rest:120, rpe:"7-8", note:"肩胛启动优先，全程控制" },
+            { id:"b", name:"坐姿绳索划船（V柄）", cat:"主项", sets:3, reps:"10-12", rest:90, rpe:"7", note:"先启动肩胛→再拉手臂" },
+            { id:"c", name:"哑铃单臂划船", cat:"辅项", sets:3, reps:"10/侧", rest:60, rpe:"7", note:"肘贴身体，充分拉伸背阔" },
+            { id:"d", name:"哑铃弯举", cat:"辅项", sets:3, reps:"10-12", rest:60, rpe:"7", note:"控制离心，不过度借力" },
+            { id:"e", name:"弹力带面拉", cat:"纠正", sets:3, reps:"15", rest:45, rpe:"-", note:"慢速顶峰收缩" },
+            { id:"core", name:"悬垂膝举", cat:"核心", sets:3, reps:"10-15", rest:60, rpe:"-", note:"控制离心，不借力" }
+          ]
+        },
+        day3: { // 蹲 — 深蹲主导
+          exercises: [
+            { id:"a", name:"高脚杯深蹲（哑铃）", cat:"主项", sets:3, reps:"10-12", rest:120, rpe:"6-7", note:"底部停顿1秒，肘触膝内侧" },
+            { id:"b", name:"罗马尼亚硬拉（哑铃）", cat:"主项", sets:3, reps:"10-12", rest:120, rpe:"7", note:"髋铰链模式，腘绳肌拉伸感" },
+            { id:"c", name:"保加利亚分腿蹲（自重→哑铃）", cat:"主项", sets:3, reps:"8-10/侧", rest:60, rpe:"7", note:"躯干直立，后脚仅作平衡" },
+            { id:"d", name:"腿弯举（器械）或北欧弯举（离心）", cat:"辅项", sets:3, reps:"10-12", rest:60, rpe:"7", note:"控制离心3-4秒" },
+            { id:"e", name:"站姿提踵（直腿+屈腿各半）", cat:"辅项", sets:3, reps:"15+15", rest:45, rpe:"8", note:"底部拉伸、顶部停顿2秒" },
+            { id:"core", name:"帕洛夫推（绳索/弹力带）", cat:"核心", sets:3, reps:"10/侧", rest:45, rpe:"-", note:"抗旋转，躯干不动" }
+          ]
+        },
+        day4: { // 推B — 推举主导
+          exercises: [
+            { id:"a", name:"站姿哑铃推举", cat:"主项", sets:3, reps:"10-12", rest:90, rpe:"7", note:"核心绷紧，臀收紧防过伸" },
+            { id:"b", name:"上斜哑铃卧推（30°）", cat:"主项", sets:3, reps:"10-12", rest:90, rpe:"7", note:"肩胛收紧" },
+            { id:"c", name:"哑铃侧平举（单侧交替）", cat:"辅项", sets:3, reps:"12-15/侧", rest:45, rpe:"-", note:"慢速控制，不耸肩", superset:1 },
+            { id:"c2", name:"窄距俯卧撑", cat:"辅项", sets:3, reps:"8-12", rest:60, rpe:"-", note:"肘贴身体，三头发力", superset:1 },
+            { id:"d", name:"弹力带肩外旋", cat:"纠正", sets:3, reps:"12/侧", rest:45, rpe:"-", note:"肘贴身体" },
+            { id:"e", name:"靠墙下巴回缩", cat:"纠正", sets:3, reps:"10", rest:30, rpe:"-", note:"收下巴，后颈有拉伸感" }
+          ]
+        },
+        day5: { // 拉B — 硬拉主导
+          exercises: [
+            { id:"a", name:"六角杠硬拉", cat:"主项", sets:3, reps:"10-12", rest:120, rpe:"7", note:"中速拉起、控制下放，脊柱中立" },
+            { id:"b", name:"反向山羊挺身（45°凳）", cat:"辅项", sets:3, reps:"10-12", rest:60, rpe:"7", note:"下背等长收缩控制" },
+            { id:"c", name:"哑铃单臂划船（支撑式）", cat:"辅项", sets:3, reps:"10/侧", rest:60, rpe:"7", note:"充分拉伸背阔肌" },
+            { id:"d", name:"臀桥（杠铃片置髋部）", cat:"辅项", sets:3, reps:"12-15", rest:45, rpe:"7", note:"顶部臀肌收缩停顿2秒", superset:1 },
+            { id:"d2", name:"农夫行走（哑铃）", cat:"辅项", sets:3, reps:"40m", rest:60, rpe:"-", note:"核心绷紧，肩胛下沉", superset:1 },
+            { id:"core", name:"死虫式", cat:"核心", sets:3, reps:"8/侧", rest:45, rpe:"-", note:"慢速控制，腰椎贴地" }
+          ]
+        }
+      }
+    },
+    { // Phase 2: weeks 5-8 — 力量基础发展
+      id: 2, name: "力量基础发展", weeks: [5,6,7,8], deloadWeek: 8,
+      warmup: "RAMP热身：跳绳/风阻单车3分钟 → 臀桥+蚌式开合+弹力带肩环绕+猫牛式5分钟 → 髋/胸椎/踝关节环绕5分钟 → 轻热身组2分钟",
+      days: {
+        day1: { // 推A — 卧推主导
+          exercises: [
+            { id:"a", name:"杠铃平板卧推", cat:"主项", sets:4, reps:"6-8", rest:150, rpe:"7-8.5", note:"本周主项，肩胛收紧、起桥适度" },
+            { id:"b", name:"上斜哑铃卧推（30°）", cat:"主项", sets:4, reps:"8-10", rest:120, rpe:"8", note:"控制离心、加速向心" },
+            { id:"c", name:"站姿杠铃推举", cat:"主项", sets:3, reps:"6-8", rest:120, rpe:"7-8", note:"核心绷紧、不超伸腰椎" },
+            { id:"d", name:"双杠臂屈伸（或绳索下压）", cat:"辅项", sets:3, reps:"8-12", rest:90, rpe:"8", note:"身体前倾→胸；垂直→三头" },
+            { id:"e", name:"哑铃侧平举", cat:"辅项", sets:3, reps:"12-15", rest:45, rpe:"-", note:"轻重量、慢速控制", superset:1 },
+            { id:"e2", name:"弹力带面拉", cat:"纠正", sets:3, reps:"15", rest:60, rpe:"-", note:"体态维护", superset:1 }
+          ]
+        },
+        day2: { // 拉A — 引体向上主导
+          exercises: [
+            { id:"a", name:"引体向上（体重/负重）", cat:"主项", sets:4, reps:"6-8", rest:120, rpe:"8-9", note:"若自重>12次则负重；或高位下拉4×8-10" },
+            { id:"b", name:"杠铃俯身划船", cat:"主项", sets:4, reps:"8-10", rest:120, rpe:"8", note:"髋铰链姿势、先启动肩胛" },
+            { id:"c", name:"坐姿绳索划船（V柄）", cat:"辅项", sets:3, reps:"8-10", rest:90, rpe:"8", note:"顶峰收缩1秒" },
+            { id:"d", name:"哑铃弯举", cat:"辅项", sets:3, reps:"8-10", rest:60, rpe:"8", note:"控制离心3秒" },
+            { id:"e", name:"弹力带面拉", cat:"纠正", sets:3, reps:"15", rest:45, rpe:"-", note:"慢速顶峰收缩", superset:1 },
+            { id:"e2", name:"弹力带肩外旋", cat:"纠正", sets:3, reps:"12/侧", rest:60, rpe:"-", note:"肘贴身体", superset:1 },
+            { id:"core", name:"悬垂举腿", cat:"核心", sets:3, reps:"10-15", rest:60, rpe:"-", note:"控制离心" },
+            { id:"f", name:"靠墙下巴回缩", cat:"纠正", sets:3, reps:"12", rest:30, rpe:"-", note:"" }
+          ]
+        },
+        day3: { // 蹲 — 深蹲主导
+          exercises: [
+            { id:"a", name:"杠铃高杠深蹲", cat:"主项", sets:4, reps:"6-8", rest:180, rpe:"7-8.5", note:"本周主项，下降控制有节奏" },
+            { id:"b", name:"杠铃罗马尼亚硬拉", cat:"主项", sets:4, reps:"8", rest:150, rpe:"8", note:"髋铰链模式，杠铃贴近小腿" },
+            { id:"c", name:"保加利亚分腿蹲（哑铃负重）", cat:"主项", sets:3, reps:"8/侧", rest:60, rpe:"8", note:"躯干直立，后脚仅作平衡" },
+            { id:"d", name:"北欧腘绳肌弯举（离心控制）", cat:"辅项", sets:3, reps:"4-6", rest:90, rpe:"-", note:"慢速离心3-4秒下放，弹力带辅助" },
+            { id:"e", name:"站姿提踵（哑铃/杠铃负重）", cat:"辅项", sets:3, reps:"12-15", rest:60, rpe:"8", note:"顶部停顿2秒" },
+            { id:"core", name:"帕洛夫推（半跪姿进阶）", cat:"核心", sets:3, reps:"8/侧", rest:45, rpe:"-", note:"更高不稳定性" }
+          ]
+        },
+        day4: { // 推B — 推举主导
+          exercises: [
+            { id:"a", name:"杠铃站姿推举", cat:"主项", sets:4, reps:"6-8", rest:120, rpe:"7-8.5", note:"本周主项，核心绷紧、臀收紧" },
+            { id:"b", name:"平板哑铃卧推", cat:"辅项", sets:3, reps:"8-10", rest:120, rpe:"8", note:"肩胛全程收紧" },
+            { id:"c", name:"哑铃侧平举（递减组）", cat:"辅项", sets:3, reps:"12+10+8", rest:60, rpe:"-", note:"三连降重，无间歇" },
+            { id:"d", name:"双杠臂屈伸（或窄距卧推）", cat:"辅项", sets:3, reps:"8-12", rest:90, rpe:"8", note:"肘贴身体" },
+            { id:"e", name:"弹力带Y字上举", cat:"纠正", sets:3, reps:"10", rest:45, rpe:"-", note:"下斜方肌，拇指朝上" },
+            { id:"f", name:"靠墙下巴回缩", cat:"纠正", sets:3, reps:"12", rest:30, rpe:"-", note:"" }
+          ]
+        },
+        day5: { // 拉B — 硬拉主导
+          exercises: [
+            { id:"a", name:"六角杠硬拉", cat:"主项", sets:4, reps:"6-8", rest:180, rpe:"8-9", note:"本周主项，中速拉起、爆发式向心" },
+            { id:"b", name:"单腿罗马尼亚硬拉（哑铃）", cat:"辅项", sets:3, reps:"10/侧", rest:60, rpe:"7", note:"支撑腿微屈，髋铰链模式" },
+            { id:"c", name:"杠铃俯身划船", cat:"主项", sets:4, reps:"8-10", rest:120, rpe:"8", note:"先启动肩胛→手臂后拉" },
+            { id:"d", name:"臀推（杠铃）", cat:"主项", sets:4, reps:"8-10", rest:120, rpe:"8", note:"顶部收缩2秒，爆发式向心" },
+            { id:"e", name:"农夫行走（哑铃加重）", cat:"辅项", sets:3, reps:"40m", rest:60, rpe:"-", note:"核心绷紧，肩胛下沉" },
+            { id:"core", name:"死虫式（弹力带抗阻）", cat:"核心", sets:3, reps:"8/侧", rest:45, rpe:"-", note:"慢速控制" }
+          ]
+        }
+      }
+    },
+    { // Phase 3: weeks 9-12 — 力量峰值
+      id: 3, name: "力量峰值", weeks: [9,10,11,12], deloadWeek: 12,
+      warmup: "RAMP热身：跳绳/风阻单车3分钟 → 臀桥+蚌式开合+弹力带肩环绕+猫牛式5分钟 → 髋/胸椎/踝关节环绕5分钟 → 神经激活+轻热身组2分钟",
+      days: {
+        day1: { // 推A — 卧推主导
+          exercises: [
+            { id:"a", name:"杠铃平板卧推", cat:"主项", sets:4, reps:"3-5", rest:180, rpe:"8-9", note:"大重量、高质量，动作不走形" },
+            { id:"b", name:"上斜哑铃卧推", cat:"主项", sets:3, reps:"6-8", rest:120, rpe:"8", note:"控制节奏" },
+            { id:"c", name:"站姿杠铃推举（维持力量）", cat:"主项", sets:3, reps:"3-5", rest:150, rpe:"8-9", note:"不追求加组，求动作质量" },
+            { id:"d", name:"窄距卧推（或双杠臂屈伸负重）", cat:"辅项", sets:3, reps:"6-8", rest:120, rpe:"8", note:"三头力量" },
+            { id:"e", name:"哑铃侧平举", cat:"辅项", sets:3, reps:"12-15", rest:45, rpe:"-", note:"", superset:1 },
+            { id:"e2", name:"弹力带面拉", cat:"纠正", sets:3, reps:"15", rest:60, rpe:"-", note:"体态维护", superset:1 }
+          ]
+        },
+        day2: { // 拉A — 引体向上主导
+          exercises: [
+            { id:"a", name:"负重引体向上", cat:"主项", sets:4, reps:"3-5", rest:180, rpe:"8-9", note:"或高位下拉 4×6-8" },
+            { id:"b", name:"杠铃俯身划船", cat:"主项", sets:4, reps:"5-6", rest:150, rpe:"8-9", note:"大重量、控制离心" },
+            { id:"c", name:"单臂哑铃划船（支撑式）", cat:"辅项", sets:3, reps:"6-8/侧", rest:90, rpe:"8", note:"充分拉伸背阔" },
+            { id:"d", name:"爆发式弹力带划船", cat:"辅项", sets:3, reps:"8", rest:60, rpe:"爆发", note:"向心阶段最大速度" },
+            { id:"e", name:"弹力带面拉", cat:"纠正", sets:3, reps:"15", rest:45, rpe:"-", note:"" },
+            { id:"f", name:"哑铃弯举", cat:"辅项", sets:3, reps:"8-10", rest:60, rpe:"8", note:"维持手臂力量" },
+            { id:"core", name:"悬垂举腿 + 侧平板 超级组", cat:"核心", sets:3, reps:"10-15+25秒", rest:60, rpe:"-", note:"3轮" },
+            { id:"g", name:"靠墙下巴回缩", cat:"纠正", sets:3, reps:"12", rest:30, rpe:"-", note:"" }
+          ]
+        },
+        day3: { // 蹲 — 深蹲主导
+          exercises: [
+            { id:"a", name:"杠铃深蹲", cat:"主项", sets:4, reps:"3-5", rest:180, rpe:"8-9", note:"本周主项——强度最高点" },
+            { id:"b", name:"杠铃罗马尼亚硬拉", cat:"主项", sets:3, reps:"5-6", rest:180, rpe:"8-9", note:"维持力量" },
+            { id:"c", name:"保加利亚分腿蹲（哑铃）", cat:"辅项", sets:3, reps:"6-8/侧", rest:90, rpe:"8", note:"控制节奏" },
+            { id:"d", name:"腿弯举（器械）", cat:"辅项", sets:3, reps:"8-10", rest:60, rpe:"8", note:"离心控制" },
+            { id:"e", name:"站姿提踵（爆发式）", cat:"辅项", sets:3, reps:"10/侧", rest:45, rpe:"最大速度", note:"离地高度最大化" },
+            { id:"core", name:"健腹轮（跪姿→站姿渐进）", cat:"核心", sets:3, reps:"6-10", rest:60, rpe:"-", note:"不过伸腰椎" }
+          ]
+        },
+        day4: { // 推B — 推举主导
+          exercises: [
+            { id:"a", name:"杠铃借力推举（Push Press）", cat:"主项", sets:4, reps:"3-5", rest:150, rpe:"爆发/8-9", note:"膝髋微屈→爆发蹬伸→顺势推起" },
+            { id:"b", name:"上斜哑铃卧推", cat:"主项", sets:3, reps:"6-8", rest:120, rpe:"8", note:"控制离心、加速向心" },
+            { id:"c", name:"哑铃侧平举", cat:"辅项", sets:3, reps:"12-15", rest:45, rpe:"-", note:"", superset:1 },
+            { id:"c2", name:"窄距卧推", cat:"辅项", sets:3, reps:"6-8", rest:90, rpe:"8", note:"三头孤立", superset:1 },
+            { id:"d", name:"弹力带面拉 + 肩外旋 超级组", cat:"纠正", sets:3, reps:"15+12", rest:60, rpe:"-", note:"肩带健康维护" },
+            { id:"e", name:"靠墙下巴回缩", cat:"纠正", sets:3, reps:"12", rest:30, rpe:"-", note:"" }
+          ]
+        },
+        day5: { // 拉B — 硬拉主导
+          exercises: [
+            { id:"a", name:"六角杠硬拉", cat:"主项", sets:3, reps:"3-5", rest:180, rpe:"8-9", note:"大重量、高质量——阶段力量的终极检验" },
+            { id:"b", name:"单腿罗马尼亚硬拉（哑铃）", cat:"辅项", sets:3, reps:"6-8/侧", rest:90, rpe:"8", note:"稳定控制" },
+            { id:"c", name:"杠铃俯身划船（维持力量）", cat:"主项", sets:3, reps:"5-6", rest:150, rpe:"8-9", note:"" },
+            { id:"d", name:"爆发式臀推（60-70% 1RM）", cat:"主项", sets:4, reps:"5", rest:120, rpe:"爆发", note:"向心阶段全速推起" },
+            { id:"e", name:"农夫行走（最大负重）", cat:"辅项", sets:3, reps:"30m", rest:60, rpe:"-", note:"握力+核心终极考验" },
+            { id:"core", name:"健腹轮", cat:"核心", sets:3, reps:"6-10", rest:60, rpe:"-", note:"" }
+          ]
+        }
+      }
+    }
+  ]
+};
+
+
+// ============================================================================
+// 应用状态
+// ============================================================================
+const STORAGE_KEY = 'fitness_training_data';
+const SETTINGS_KEY = 'fitness_settings';
+
+function loadData() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveData(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+function loadSettings() {
+  const def = {
+    startDate: '2026-06-30',
+    trainingDays: { 1: true, 2: true, 4: true, 5: true, 6: true }, // Mon, Tue, Thu, Fri, Sat
+    oneRM: {}  // 用户各动作极限重量，如 { bench:80, squat:100, ... }
+  };
+  try { return { ...def, ...JSON.parse(localStorage.getItem(SETTINGS_KEY)) }; }
+  catch { return def; }
+}
+function saveSettings(s) { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); }
+
+let settings = loadSettings();
+let appState = {
+  currentTab: 'training',
+  selectedDay: 'day1',
+  selectedWeek: 1,
+  selectedPhase: 0, // index into PLAN.phases
+};
+let currentTrainingDate = null;  // 当前渲染的训练日日期
+let currentDayId = null;         // 当前渲染的训练日 ID
+let warmupCollapsed = true;          // 热身块折叠状态（跨渲染保持）
+
+// ============================================================================
+// 工具函数
+// ============================================================================
+function getTodayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function dateAddDays(dateStr, days) {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function diffDays(d1, d2) {
+  return Math.floor((new Date(d2) - new Date(d1)) / (1000*60*60*24));
+}
+function getWeekdayStr(dateStr) {
+  const days = ['周日','周一','周二','周三','周四','周五','周六'];
+  return days[new Date(dateStr).getDay()];
+}
+function getWeekdayNum(dateStr) {
+  return new Date(dateStr).getDay(); // 0=Sun, 1=Mon, ...
+}
+
+// ============================================================================
+// 极限重量 (1RM) — RPE→百分比换算 & 推荐重量计算
+// ============================================================================
+const ONE_RM_DEFS = [
+  { key: 'bench',     label: '杠铃卧推',       keywords: ['窄距卧推', '卧推'], ratio: 0.9 },
+  { key: 'squat',     label: '杠铃深蹲',       keywords: ['高脚杯深蹲', '深蹲'], ratio: 0.85 },
+  { key: 'deadlift',  label: '六角杠硬拉',     keywords: ['硬拉'], ratio: 1.0 },
+  { key: 'ohp',       label: '杠铃站姿推举',   keywords: ['借力推举', '推举'], ratio: 0.85 },
+  { key: 'row',       label: '杠铃俯身划船',   keywords: ['绳索划船', '俯身划船', '划船'], ratio: 0.8 },
+  { key: 'rdl',       label: '罗马尼亚硬拉',   keywords: ['罗马尼亚硬拉', '罗马尼亚'], ratio: 0.9 },
+  { key: 'pullup',    label: '引体向上',       keywords: ['引体向上', '高位下拉'], ratio: 0.85 },
+  { key: 'dip',       label: '双杠臂屈伸',     keywords: ['臂屈伸', '双杠'], ratio: 0.9 },
+  { key: 'bulgarian', label: '保加利亚分腿蹲', keywords: ['保加利亚分腿蹲', '分腿蹲'], ratio: 0.7 },
+  { key: 'hipthrust', label: '杠铃臀推',       keywords: ['臀推', '臀桥'], ratio: 0.85 }
+];
+
+// 需要排除的辅项关键词（不计算推荐重量）
+const SKIP_RM_KEYWORDS = ['侧平举', '面拉', '弯举', '提踵', '腿弯举', '山羊挺身', '农夫行走',
+  '俯卧撑', '肩外旋', '下巴回缩', '悬垂', '死虫', '帕洛夫', '健腹轮', 'Y字', '举腿', '平板'];
+
+function rpeToPercent(rpeStr) {
+  // 处理 RPE 字符串如 "7-8.5", "8", "爆发", "-"
+  if (!rpeStr || rpeStr === '-' || rpeStr === '最大速度') return null;
+  if (rpeStr.includes('爆发')) return { pct: 60, low: 60, high: 60 };
+  // 提取数字部分
+  const nums = rpeStr.match(/[\d.]+/g);
+  if (!nums || nums.length === 0) return null;
+  const values = nums.map(Number);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  // RPE → 1RM%: % = 55 + RPE × 2.5 (近似)
+  const toPct = rpe => Math.round((55 + rpe * 2.5) * 2) / 2;
+  const lowPct = toPct(min);
+  const highPct = toPct(max);
+  const midPct = Math.round((lowPct + highPct) / 2 * 2) / 2;
+  return { pct: midPct, low: lowPct, high: highPct, minRpe: min, maxRpe: max };
+}
+
+function matchExerciseTo1RM(exName, oneRM) {
+  if (!oneRM || Object.keys(oneRM).length === 0) return null;
+  // 检查是否在排除列表中
+  for (const kw of SKIP_RM_KEYWORDS) {
+    if (exName.includes(kw)) return null;
+  }
+  // 按关键词匹配
+  for (const def of ONE_RM_DEFS) {
+    if (!oneRM[def.key] || oneRM[def.key] <= 0) continue;
+    for (const kw of def.keywords) {
+      if (exName.includes(kw)) {
+        return { key: def.key, oneRM: oneRM[def.key], ratio: def.ratio, label: def.label };
+      }
+    }
+  }
+  return null;
+}
+
+function calcRecommendedWeight(oneRM, rpeStr, isDeload) {
+  const pctInfo = rpeToPercent(rpeStr);
+  if (!pctInfo || !oneRM || oneRM <= 0) return null;
+  let base = oneRM * pctInfo.pct / 100;
+  let low = oneRM * pctInfo.low / 100;
+  let high = oneRM * pctInfo.high / 100;
+  // 减量周打 65 折
+  if (isDeload) { base *= 0.65; low *= 0.65; high *= 0.65; }
+  // 取整到 2.5kg
+  const round = v => Math.round(v / 2.5) * 2.5;
+  base = round(base);
+  low = round(low);
+  high = round(high);
+  if (low === high) {
+    return { text: `${base} kg`, base, low, high, isRange: false };
+  }
+  return { text: `${low}-${high} kg`, base, low, high, isRange: true };
+}
+
+function getProgressionHint(matchResult, dayId, currentWeek, allData) {
+  if (!matchResult || !allData || currentWeek <= 1) return null;
+  // 查找上一周同一天的记录
+  const prevWeek = currentWeek - 1;
+  const startDate = settings.startDate;
+  const dayInfo = PLAN.schedule[dayId];
+  if (!dayInfo) return null;
+  const prevWeekStart = dateAddDays(startDate, (prevWeek - 1) * 7);
+  const prevWeekStartWD = getWeekdayNum(prevWeekStart);
+  const daysToAdd = (dayInfo.weekday - prevWeekStartWD + 7) % 7;
+  const prevDate = dateAddDays(prevWeekStart, daysToAdd);
+  const prevSession = allData[prevDate] && allData[prevDate][dayId];
+  if (!prevSession || !prevSession.exercises) return null;
+  // 找到匹配的动作
+  let allChecked = false;
+  for (const [exId, record] of Object.entries(prevSession.exercises)) {
+    const sets = record.sets || [];
+    if (sets.length === 0) continue;
+    // Check if this exId name matches (need to look up from PLAN)
+    const phaseIdx = getPhaseForWeek(prevWeek);
+    const dayData = PLAN.phases[phaseIdx]?.days[dayId];
+    if (!dayData) continue;
+    const exDef = dayData.exercises.find(e => e.id === exId);
+    if (!exDef) continue;
+    const exMatch = matchExerciseTo1RM(exDef.name, settings.oneRM);
+    if (exMatch && exMatch.key === matchResult.key) {
+      allChecked = sets.every(s => s.checked);
+      break;
+    }
+  }
+  if (!allChecked) return null;
+  // 下肢动作 +5kg，上肢 +2.5kg
+  const lowerKeys = ['squat', 'deadlift', 'rdl', 'bulgarian'];
+  const inc = lowerKeys.includes(matchResult.key) ? 5 : 2.5;
+  return { increment: inc, note: `↑ +${inc}kg` };
+}
+
+function getCurrentWeek() {
+  // Calculate based on start date
+  const start = settings.startDate;
+  const today = getTodayStr();
+  const diff = diffDays(start, today);
+  if (diff < 0) return 1;
+  return Math.min(Math.floor(diff / 7) + 1, 12);
+}
+
+function getPhaseForWeek(week) {
+  for (let i = 0; i < PLAN.phases.length; i++) {
+    if (PLAN.phases[i].weeks.includes(week)) return i;
+  }
+  return 0;
+}
+
+function getDayData(phaseIdx, dayId) {
+  const phase = PLAN.phases[phaseIdx];
+  return phase.days[dayId] || null;
+}
+
+// ============================================================================
+// 根据日期找到对应的训练日
+// ============================================================================
+function getTrainingDayForDate(dateStr) {
+  const wd = getWeekdayNum(dateStr);
+  for (const [key, day] of Object.entries(PLAN.schedule)) {
+    if (day.weekday === wd && settings.trainingDays[wd]) {
+      return key;
+    }
+  }
+  return null;
+}
+
+// ============================================================================
+// 渲染
+// ============================================================================
+function renderDayNav() {
+  const nav = document.getElementById('dayNav');
+  const todayStr = getTodayStr();
+  const todayDay = getTrainingDayForDate(todayStr);
+
+  const dayIcons = { day1: '🔵', day2: '🟢', day3: '🦵', day4: '🟠', day5: '🔴' };
+
+  let html = '';
+  for (const [key, day] of Object.entries(PLAN.schedule)) {
+    const isActive = key === appState.selectedDay;
+    const isToday = key === todayDay;
+    let cls = '';
+    if (isActive) cls += ' active';
+    if (isToday && !isActive) cls += ' today';
+    html += `<button class="${cls}" data-day="${key}"><span style="font-size:1.1rem;">${dayIcons[key]||''}</span> ${day.short}<br><small>${day.label}</small></button>`;
+  }
+  nav.innerHTML = html;
+
+  // Click handlers
+  nav.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      appState.selectedDay = btn.dataset.day;
+      renderAll();
+    });
+  });
+}
+
+function renderHeader() {
+  const week = appState.selectedWeek;
+  const phaseIdx = getPhaseForWeek(week);
+  const phase = PLAN.phases[phaseIdx];
+
+  document.getElementById('phaseBadge').textContent = `阶段${phaseIdx+1}：${phase.name}`;
+  document.getElementById('weekLabel').textContent = `第${week}周${week === phase.deloadWeek ? ' (减量周)' : ''}`;
+
+  const todayStr = getTodayStr();
+  const todayDay = getTrainingDayForDate(todayStr);
+  const todayWeek = getCurrentWeek();
+  document.getElementById('todayHint').textContent = `今天：${getWeekdayStr(todayStr)} · 第${todayWeek}周`;
+  const todayBtn = document.getElementById('todayBtn');
+  if (week === todayWeek && appState.selectedDay === todayDay) {
+    todayBtn.textContent = '✓ 当前';
+    todayBtn.style.opacity = '0.5';
+  } else {
+    todayBtn.textContent = '📍 今天';
+    todayBtn.style.opacity = '0.85';
+  }
+}
+
+function renderTrainingView() {
+  const week = appState.selectedWeek;
+  const phaseIdx = getPhaseForWeek(week);
+  const phase = PLAN.phases[phaseIdx];
+  const dayId = appState.selectedDay;
+  const dayInfo = PLAN.schedule[dayId];
+  const dayData = phase.days[dayId];
+
+  if (!dayData) {
+    document.getElementById('exerciseList').innerHTML = '<div class="empty-state"><div class="icon">🏖️</div>休息日</div>';
+    document.getElementById('dayTitle').textContent = dayInfo ? `${dayInfo.short}：${dayInfo.name}` : '休息日';
+    document.getElementById('dayLocation').textContent = '健身房';
+    document.getElementById('dayLocation').className = 'location gym';
+    document.getElementById('warmupBlock').innerHTML = '';
+    document.getElementById('completionFill').style.width = '0%';
+    document.getElementById('completionLabel').textContent = '';
+    document.getElementById('dayDate').textContent = '';
+    return;
+  }
+
+  document.getElementById('dayTitle').textContent = `${dayInfo.short}：${dayInfo.name}`;
+  document.getElementById('dayLocation').textContent = '健身房';
+  document.getElementById('dayLocation').className = 'location gym';
+
+  // Calculate what date this training day falls on
+  const startDate = settings.startDate;
+  const dayWeekday = dayInfo.weekday; // 1=Mon, 2=Tue, etc.
+  const weekStart = dateAddDays(startDate, (week - 1) * 7);
+  const weekStartWD = getWeekdayNum(weekStart);
+  const daysToAdd = (dayWeekday - weekStartWD + 7) % 7;
+  const trainingDate = dateAddDays(weekStart, daysToAdd);
+  document.getElementById('dayDate').textContent = `${trainingDate} ${getWeekdayStr(trainingDate)}`;
+
+  // 追踪当前训练日状态（供 saveCurrentRecords / 事件委托使用）
+  currentTrainingDate = trainingDate;
+  currentDayId = dayId;
+
+  // Warmup — 可折叠 RAMP 步骤列表
+  const warmupSteps = phase.warmup
+    .replace(/^RAMP热身：/, '')
+    .split('→')
+    .map(s => s.trim())
+    .filter(Boolean);
+  document.getElementById('warmupBlock').innerHTML = `
+    <div class="warmup-header"><strong>🧢 RAMP 热身</strong><span class="warmup-toggle">${warmupCollapsed ? '展开 ▼' : '收起 ▲'}</span></div>
+    <div class="warmup-text">
+      ${warmupSteps.map((s, i) => `<div class="warmup-step"><span class="step-num">${i+1}</span>${s}</div>`).join('')}
+    </div>`;
+  if (warmupCollapsed) document.getElementById('warmupBlock').classList.add('collapsed');
+
+  // Exercises
+  let html = '';
+  const exercises = dayData.exercises;
+
+  // Check if there's saved data for this date+day
+  const allData = loadData();
+  const savedSession = allData[trainingDate] && allData[trainingDate][dayId]
+    ? allData[trainingDate][dayId]
+    : null;
+
+  let completedCount = 0;
+
+  exercises.forEach((ex, idx) => {
+    const catClass = ex.cat === '核心' ? 'core' : ex.cat === '纠正' ? 'correct' : '';
+    const supersetNote = ex.superset ? '<div class="ex-superset">🔗 超级组</div>' : '';
+
+    // Check if this exercise has saved records
+    let savedRecord = null;
+    let savedSets = [];
+    if (savedSession && savedSession.exercises && savedSession.exercises[ex.id]) {
+      savedRecord = savedSession.exercises[ex.id];
+      savedSets = savedRecord.sets || [];
+    }
+    const hasRecords = savedSets.some(s => s.weight || s.reps || s.rpe || s.checked);
+    if (hasRecords) completedCount++;
+
+    // 推荐重量计算
+    const isDeload = (week === phase.deloadWeek);
+    const rmMatch = matchExerciseTo1RM(ex.name, settings.oneRM);
+    let recHtml = '', recText = null;
+    if (rmMatch) {
+      const rec = calcRecommendedWeight(rmMatch.oneRM * rmMatch.ratio, ex.rpe, isDeload);
+      if (rec) {
+        recText = rec.text;
+        const prog = getProgressionHint(rmMatch, dayId, week, allData);
+        const deloadCls = isDeload ? ' deload' : '';
+        const progBadge = prog ? `<span class="progression-badge">${prog.note}</span>` : '';
+        recHtml = `<span class="rec-weight${deloadCls}">🎯 ${isDeload ? '减量 ' : ''}${rec.text}${progBadge}</span>`;
+      }
+    }
+
+    html += `
+    <div class="exercise-card${ex.superset ? ' superset-card' : ''}${hasRecords ? ' expanded' : ''}" data-ex-id="${ex.id}">
+      <div class="ex-top">
+        <div>
+          <span class="ex-name">${idx+1}. ${ex.name}</span>
+          ${supersetNote}
+        </div>
+        <span class="ex-cat ${catClass}">${ex.cat}</span>
+        ${hasRecords ? '<span style="font-size:0.8rem;margin-left:4px;">✅</span>' : ''}
+      </div>
+      <div class="ex-target">
+        <span>📐 ${ex.sets}×${ex.reps}</span>
+        <span>⏱ ${ex.rest}秒</span>
+        <span>💪 RPE ${ex.rpe}</span>
+        ${recHtml}
+      </div>
+      ${ex.note ? `<div class="ex-notes">💡 ${ex.note}</div>` : ''}
+      ${hasRecords ? '' : '<div class="record-hint">👆 点击展开记录重量和次数</div>'}
+      <div class="record-area">
+        ${renderRecordArea(ex, savedRecord, recText)}
+      </div>
+    </div>`;
+  });
+
+  const _scrollY = window.scrollY;
+  document.getElementById('exerciseList').innerHTML = html;
+  requestAnimationFrame(() => { if (_scrollY > 0) window.scrollTo(0, _scrollY); });
+
+  // Completion bar
+  const pct = exercises.length > 0 ? Math.round((completedCount / exercises.length) * 100) : 0;
+  document.getElementById('completionFill').style.width = pct + '%';
+  document.getElementById('completionLabel').textContent = completedCount > 0 ? `✅ ${completedCount}/${exercises.length} 项已完成` : '';
+}
+
+function renderRecordArea(ex, savedRecord, recWeightText) {
+  const targetSets = typeof ex.sets === 'number' ? ex.sets : (typeof ex.sets === 'string' ? parseInt(ex.sets) : 3);
+  const record = savedRecord || {};
+  const saved = record.sets || [];
+  const savedNotes = record._notes || '';
+  const setCount = Math.max(targetSets, saved.length || targetSets);
+  const weightPlaceholder = recWeightText || '重量kg';
+
+  let html = '';
+  for (let i = 0; i < setCount; i++) {
+    const s = saved[i] || { weight: '', reps: '', rpe: '' };
+    const hasData = s.weight !== '' || s.reps !== '' || s.rpe !== '';
+    const isChecked = s.checked || (s.weight !== '' && s.reps !== '');
+    html += `
+    <div class="set-row${hasData ? ' has-data' : ''}">
+      <span class="set-label">#${i+1}</span>
+      <input type="number" placeholder="${weightPlaceholder}" value="${s.weight}" data-ex="${ex.id}" data-set="${i}" data-field="weight" step="0.5" min="0" style="flex:1">
+      <span class="input-label">kg</span>
+      <input type="number" placeholder="次数" value="${s.reps}" data-ex="${ex.id}" data-set="${i}" data-field="reps" min="0" style="flex:0.8">
+      <span class="input-label">次</span>
+      <input type="number" placeholder="RPE" value="${s.rpe}" data-ex="${ex.id}" data-set="${i}" data-field="rpe" step="0.5" min="0" max="10" style="flex:0.7">
+      <button class="set-done-btn${isChecked ? ' checked' : ''}" data-ex="${ex.id}" data-set="${i}" title="标记完成">✓</button>
+    </div>`;
+  }
+  html += `<button class="add-set-btn" data-ex="${ex.id}">+ 添加一组</button>`;
+  html += `<input class="ex-notes-input" placeholder="备注（如：底部停顿可再深一点）" value="${savedNotes}" data-ex="${ex.id}" data-field="notes">`;
+
+  return html;
+}
+
+function getOrCreateSession(allData, dateStr, dayId) {
+  if (!allData[dateStr]) allData[dateStr] = {};
+  if (!allData[dateStr][dayId]) allData[dateStr][dayId] = { exercises: {}, notes: '' };
+  return allData[dateStr][dayId];
+}
+
+function saveCurrentRecords() {
+  if (!currentTrainingDate || !currentDayId) return;
+  const allData = loadData();
+  const session = getOrCreateSession(allData, currentTrainingDate, currentDayId);
+
+  document.querySelectorAll('.exercise-card').forEach(card => {
+    const exId = card.dataset.exId;
+    const sets = [];
+    card.querySelectorAll('.set-row').forEach(row => {
+      const inputs = row.querySelectorAll('input');
+      const doneBtn = row.querySelector('.set-done-btn');
+      if (inputs.length >= 3) {
+        sets.push({
+          weight: inputs[0].value,
+          reps: inputs[1].value,
+          rpe: inputs[2].value,
+          checked: doneBtn ? doneBtn.classList.contains('checked') : false
+        });
+      }
+    });
+    const notesInput = card.querySelector('.ex-notes-input');
+    const notes = notesInput ? notesInput.value : '';
+
+    // Only save if there's data
+    const hasData = sets.some(s => s.weight || s.reps || s.rpe || s.checked);
+    if (hasData || notes) {
+      session.exercises[exId] = { sets, _notes: notes };
+    }
+  });
+
+  session.savedAt = new Date().toISOString();
+  saveData(allData);
+}
+
+function renderHistoryView() {
+  const allData = loadData();
+  const dates = Object.keys(allData).sort().reverse();
+
+  // Summary
+  const totalSessions = dates.reduce((sum, d) => sum + Object.keys(allData[d]).length, 0);
+  const totalDays = dates.length;
+
+  // Calculate streak
+  let streak = 0;
+  const today = getTodayStr();
+  let checkDate = today;
+  while (true) {
+    const td = getTrainingDayForDate(checkDate);
+    if (td && allData[checkDate] && allData[checkDate][td]) {
+      streak++;
+      checkDate = dateAddDays(checkDate, -1);
+    } else if (!td) {
+      checkDate = dateAddDays(checkDate, -1); // skip rest days
+    } else {
+      break;
+    }
+  }
+
+  document.getElementById('historySummary').innerHTML = `
+    <div class="stat"><div class="val">${totalSessions}</div><div class="lbl">🏋️ 总训练次数</div></div>
+    <div class="stat"><div class="val">${totalDays}</div><div class="lbl">📅 训练天数</div></div>
+    <div class="stat"><div class="val">${streak}</div><div class="lbl">🔥 连续训练</div></div>
+  `;
+
+  // History list
+  if (dates.length === 0) {
+    document.getElementById('historyList').innerHTML = '<div class="empty-state"><div class="icon">📝</div>暂无训练记录<br>开始训练后这里会显示历史</div>';
+  } else {
+    let html = '';
+    dates.forEach(date => {
+      const days = Object.keys(allData[date]);
+      days.forEach(dayId => {
+        const session = allData[date][dayId];
+        const dayInfo = PLAN.schedule[dayId];
+        const exCount = Object.keys(session.exercises).length;
+        const totalSets = Object.values(session.exercises).reduce((s, ex) => s + (ex.sets ? ex.sets.length : 0), 0);
+        const recordedEx = Object.values(session.exercises).filter(ex => ex.sets && ex.sets.some(s => s.weight || s.reps || s.rpe)).length;
+        html += `
+        <div class="history-item" data-date="${date}" data-day="${dayId}">
+          <div class="hi-date">${date} ${getWeekdayStr(date)}</div>
+          <div class="hi-day">${dayInfo ? dayInfo.short + '：' + dayInfo.name : dayId} · 🏋️ 健身房</div>
+          <div class="hi-records">✅ ${recordedEx}/${exCount} 项已记录 · ${totalSets} 组</div>
+        </div>`;
+      });
+    });
+    document.getElementById('historyList').innerHTML = html;
+
+    // Click handlers
+    document.querySelectorAll('.history-item').forEach(item => {
+      item.addEventListener('click', () => showHistoryDetail(item.dataset.date, item.dataset.day));
+    });
+  }
+}
+
+function showHistoryDetail(dateStr, dayId) {
+  const allData = loadData();
+  const session = allData[dateStr] && allData[dateStr][dayId];
+  if (!session) return;
+
+  const dayInfo = PLAN.schedule[dayId];
+
+  // Find the phase for this date
+  const week = Math.floor(diffDays(settings.startDate, dateStr) / 7) + 1;
+  const phaseIdx = getPhaseForWeek(Math.max(1, Math.min(12, week)));
+  const dayData = getDayData(phaseIdx, dayId);
+
+  let html = `
+    <button class="close-btn" id="closeHistory">✕</button>
+    <h3>${dateStr} ${getWeekdayStr(dateStr)}</h3>
+    <p style="color:var(--text2);margin-bottom:12px;">${dayInfo ? dayInfo.short + '：' + dayInfo.name : dayId} · 健身房</p>
+  `;
+
+  if (dayData) {
+    dayData.exercises.forEach(ex => {
+      const record = session.exercises[ex.id];
+      let setsHtml = '';
+      if (record && record.sets && record.sets.length > 0) {
+        setsHtml = record.sets.map((s, i) =>
+          `<span style="color:var(--text)">#${i+1}: ${s.weight || '-'}kg × ${s.reps || '-'}次 @RPE ${s.rpe || '-'}</span>`
+        ).join('<br>');
+      } else {
+        setsHtml = '<span style="color:var(--text2)">未记录</span>';
+      }
+      html += `
+      <div class="hd-exercise">
+        <div class="hd-name">${ex.name}</div>
+        <div class="hd-sets">目标: ${ex.sets}×${ex.reps} @RPE ${ex.rpe}<br>实际:<br>${setsHtml}</div>
+        ${record && record._notes ? `<div class="hd-notes">📝 ${record._notes}</div>` : ''}
+      </div>`;
+    });
+  }
+
+  document.getElementById('historyDetail').innerHTML = html;
+  document.getElementById('historyOverlay').classList.add('active');
+
+  document.getElementById('closeHistory').addEventListener('click', () => {
+    document.getElementById('historyOverlay').classList.remove('active');
+  });
+  document.getElementById('historyOverlay').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('active');
+  });
+}
+
+function renderSettingsView() {
+  document.getElementById('startDateInput').value = settings.startDate;
+
+  const weekdays = ['周日','周一','周二','周三','周四','周五','周六'];
+  let checksHtml = '';
+  for (let i = 0; i < 7; i++) {
+    const checked = settings.trainingDays[i] || false;
+    checksHtml += `<span class="day-check${checked ? ' checked' : ''}" data-wd="${i}">${weekdays[i]}</span>`;
+  }
+  document.getElementById('weekdayChecks').innerHTML = checksHtml;
+
+  // Handlers
+  document.getElementById('startDateInput').addEventListener('change', function() {
+    settings.startDate = this.value;
+    saveSettings(settings);
+    appState.selectedWeek = getCurrentWeek();
+    renderAll();
+  });
+
+  document.querySelectorAll('.day-check').forEach(check => {
+    check.addEventListener('click', function() {
+      const wd = parseInt(this.dataset.wd);
+      settings.trainingDays[wd] = !settings.trainingDays[wd];
+      saveSettings(settings);
+      this.classList.toggle('checked');
+      renderAll();
+    });
+  });
+
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const data = loadData();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `训练记录_${getTodayStr()}.json`;
+    a.click(); URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    if (confirm('确定要清除所有训练记录吗？此操作不可撤销。')) {
+      saveData({});
+      renderAll();
+    }
+  });
+
+  // 1RM 极限重量输入
+  const rmGrid = document.getElementById('oneRmGrid');
+  let rmHtml = '';
+  ONE_RM_DEFS.forEach(def => {
+    const val = settings.oneRM[def.key] || '';
+    rmHtml += `<div class="one-rm-item">
+      <label>${def.label}</label>
+      <input type="number" placeholder="1RM" value="${val}" data-rm="${def.key}" step="2.5" min="0">
+      <span class="unit">kg</span>
+    </div>`;
+  });
+  rmGrid.innerHTML = rmHtml;
+  rmGrid.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('change', function() {
+      const key = this.dataset.rm;
+      const v = parseFloat(this.value);
+      if (v > 0) { settings.oneRM[key] = v; }
+      else { delete settings.oneRM[key]; }
+      saveSettings(settings);
+      renderTrainingView(); // 刷新训练视图以更新推荐重量
+    });
+  });
+}
+
+// ============================================================================
+// 事件委托 — 一次性绑定，处理动态训练表单的所有交互
+// ============================================================================
+let autoSaveTimer = null;
+function autoSaveIndicator() {
+  const el = document.getElementById('autoSaveIndicator');
+  if (!el) return;
+  el.classList.add('show');
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => { el.classList.remove('show'); }, 1500);
+}
+
+// 实时更新完成进度条（无需重渲染）
+function updateCompletionBar() {
+  const cards = document.querySelectorAll('#exerciseList .exercise-card');
+  let completed = 0;
+  cards.forEach(card => {
+    const hasDataRows = card.querySelectorAll('.set-row.has-data');
+    if (hasDataRows.length > 0) completed++;
+  });
+  const pct = cards.length > 0 ? Math.round((completed / cards.length) * 100) : 0;
+  document.getElementById('completionFill').style.width = pct + '%';
+  document.getElementById('completionLabel').textContent = completed > 0 ? `✅ ${completed}/${cards.length} 项已完成` : '';
+}
+
+function setupTrainingDelegation() {
+  const tv = document.getElementById('trainingView');
+
+  // 点击委托
+  tv.addEventListener('click', function(e) {
+    // 热身块折叠
+    const wb = e.target.closest('.warmup-block');
+    if (wb) {
+      wb.classList.toggle('collapsed');
+      const toggle = wb.querySelector('.warmup-toggle');
+      if (toggle) toggle.textContent = wb.classList.contains('collapsed') ? '展开 ▼' : '收起 ▲';
+      warmupCollapsed = wb.classList.contains('collapsed');
+      return;
+    }
+
+    // 添加组按钮 — 需要重渲染以显示新行
+    const addBtn = e.target.closest('.add-set-btn');
+    if (addBtn) {
+      e.stopPropagation();
+      const exId = addBtn.dataset.ex;
+      if (!currentTrainingDate || !currentDayId) return;
+      saveCurrentRecords();
+      const allData = loadData();
+      const session = getOrCreateSession(allData, currentTrainingDate, currentDayId);
+      const exData = session.exercises[exId] || { sets: [], _notes: '' };
+      exData.sets.push({ weight: '', reps: '', rpe: '', checked: false });
+      session.exercises[exId] = exData;
+      saveData(allData);
+      renderTrainingView(); // 需要重渲染以显示新行
+      // 自动展开卡片以显示新增行
+      const newCard = document.querySelector(`.exercise-card[data-ex-id="${exId}"]`);
+      if (newCard && !newCard.classList.contains('expanded')) {
+        newCard.classList.add('expanded');
+        const hint = newCard.querySelector('.record-hint');
+        if (hint) hint.style.display = 'none';
+      }
+      return;
+    }
+
+    // 完成组勾选按钮 — 静默保存，不重渲染
+    const doneBtn = e.target.closest('.set-done-btn');
+    if (doneBtn) {
+      e.stopPropagation();
+      doneBtn.classList.toggle('checked');
+      // 同步更新父行样式
+      const row = doneBtn.closest('.set-row');
+      if (row) {
+        const inputs = row.querySelectorAll('input');
+        const hasData = Array.from(inputs).some(inp => inp.value !== '');
+        if (hasData || doneBtn.classList.contains('checked')) {
+          row.classList.add('has-data');
+        } else {
+          row.classList.remove('has-data');
+        }
+      }
+      saveCurrentRecords();
+      autoSaveIndicator();
+      updateCompletionBar();
+      return;
+    }
+
+    // 动作卡片展开/折叠 — 静默保存，纯 CSS 切换
+    const card = e.target.closest('.exercise-card');
+    if (card && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA' && !e.target.closest('button')) {
+      // 先静默保存当前数据
+      saveCurrentRecords();
+      card.classList.toggle('expanded');
+      // 更新记录提示可见性
+      const hint = card.querySelector('.record-hint');
+      if (hint) hint.style.display = card.classList.contains('expanded') ? 'none' : '';
+    }
+  });
+
+  // 输入变更委托 — 静默自动保存（不重渲染，不打断输入）
+  tv.addEventListener('change', function(e) {
+    if (e.target.closest('.exercise-card')) {
+      saveCurrentRecords();
+      autoSaveIndicator();
+      // 更新该行的 has-data 状态
+      const row = e.target.closest('.set-row');
+      if (row) {
+        const inputs = row.querySelectorAll('input');
+        const hasData = Array.from(inputs).some(inp => inp.value !== '');
+        if (hasData) row.classList.add('has-data');
+        else row.classList.remove('has-data');
+      }
+      updateCompletionBar();
+    }
+  });
+
+  // 输入时更新行样式（不保存，仅视觉反馈）
+  tv.addEventListener('input', function(e) {
+    if (e.target.tagName === 'INPUT' && e.target.closest('.set-row')) {
+      const row = e.target.closest('.set-row');
+      const inputs = row.querySelectorAll('input');
+      const hasData = Array.from(inputs).some(inp => inp.value !== '');
+      if (hasData) row.classList.add('has-data');
+      else row.classList.remove('has-data');
+    }
+  });
+}
+
+function renderAll() {
+  renderHeader();
+  renderDayNav();
+  renderTrainingView();
+  if (appState.currentTab === 'history') renderHistoryView();
+  if (appState.currentTab === 'settings') renderSettingsView();
+}
+
+// ============================================================================
+// 标签切换
+// ============================================================================
+document.querySelectorAll('.bottom-nav button').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const tab = this.dataset.tab;
+    appState.currentTab = tab;
+
+    document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+
+    document.getElementById('trainingView').style.display = tab === 'training' ? 'block' : 'none';
+    document.getElementById('historyView').classList.toggle('active', tab === 'history');
+    document.getElementById('settingsView').classList.toggle('active', tab === 'settings');
+
+    if (tab === 'history') renderHistoryView();
+    if (tab === 'settings') renderSettingsView();
+  });
+});
+
+// ============================================================================
+// 周导航
+// ============================================================================
+document.getElementById('prevWeek').addEventListener('click', () => {
+  if (appState.selectedWeek > 1) {
+    appState.selectedWeek--;
+    appState.selectedPhase = getPhaseForWeek(appState.selectedWeek);
+    renderAll();
+  }
+});
+document.getElementById('nextWeek').addEventListener('click', () => {
+  if (appState.selectedWeek < 12) {
+    appState.selectedWeek++;
+    appState.selectedPhase = getPhaseForWeek(appState.selectedWeek);
+    renderAll();
+  }
+});
+
+	document.getElementById('todayBtn').addEventListener('click', () => {
+	  const todayWeek = getCurrentWeek();
+	  const todayDay = getTrainingDayForDate(getTodayStr());
+	  if (todayWeek !== appState.selectedWeek) {
+	    appState.selectedWeek = todayWeek;
+	    appState.selectedPhase = getPhaseForWeek(appState.selectedWeek);
+	  }
+	  if (todayDay) appState.selectedDay = todayDay;
+	  renderAll();
+	});
+
+// ============================================================================
+// 保存按钮
+// ============================================================================
+document.getElementById('saveBtn').addEventListener('click', () => {
+  saveCurrentRecords();
+  document.getElementById('saveFeedback').innerHTML = '<div class="save-feedback success">✅ 训练记录已保存！</div>';
+  setTimeout(() => { document.getElementById('saveFeedback').innerHTML = ''; }, 2000);
+  renderTrainingView();
+});
+
+// ============================================================================
+// 自动保存：切换标签/离开页面前保存
+// ============================================================================
+window.addEventListener('beforeunload', () => { saveCurrentRecords(); });
+document.querySelector('.bottom-nav').addEventListener('click', () => { saveCurrentRecords(); });
+document.getElementById('dayNav').addEventListener('click', () => { saveCurrentRecords(); });
+
+// ============================================================================
+// 键盘快捷键 Ctrl+S 保存
+// ============================================================================
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    saveCurrentRecords();
+    document.getElementById('saveFeedback').innerHTML = '<div class="save-feedback success">✅ 已保存 (Ctrl+S)</div>';
+    setTimeout(() => { document.getElementById('saveFeedback').innerHTML = ''; }, 1500);
+  }
+});
+
+// ============================================================================
+// 初始化
+// ============================================================================
+function init() {
+  appState.selectedWeek = getCurrentWeek();
+  appState.selectedPhase = getPhaseForWeek(appState.selectedWeek);
+
+  // Auto-select today's training day
+  const todayDay = getTrainingDayForDate(getTodayStr());
+  if (todayDay) appState.selectedDay = todayDay;
+
+  setupTrainingDelegation();
+  renderAll();
+}
+
+init();
+</script>
+</body>
+</html>
