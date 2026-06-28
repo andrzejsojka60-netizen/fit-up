@@ -127,6 +127,9 @@ main { padding: 16px 14px; }
   padding: 3px 10px; border-radius: 12px; font-weight: 600; font-size: 0.78rem;
   background: rgba(9,105,218,.1); color: var(--gym);
 }
+.day-header .location.rest {
+  background: rgba(207,34,46,.08); color: var(--danger);
+}
 .day-header .date-str { color: var(--text2); font-weight: 500; }
 
 /* ── Exercise Cards ── */
@@ -939,8 +942,20 @@ function renderDayNav() {
 
   const dayIcons = { day1: '🔵', day2: '🟢', day3: '🦵', day4: '🟠', day5: '🔴' };
 
+  // 根据 settings.trainingDays 过滤：只显示被勾选的训练日
+  const allEntries = Object.entries(PLAN.schedule);
+  const activeEntries = allEntries.filter(([key, day]) => settings.trainingDays[day.weekday]);
+
+  // 兜底：如果全部取消勾选，显示所有训练日避免空白
+  const entries = activeEntries.length > 0 ? activeEntries : allEntries;
+
+  // 如果当前选中的 day 被过滤掉了，自动切换到第一个可用 day
+  if (!entries.some(([key]) => key === appState.selectedDay)) {
+    appState.selectedDay = entries[0][0];
+  }
+
   let html = '';
-  for (const [key, day] of Object.entries(PLAN.schedule)) {
+  for (const [key, day] of entries) {
     const isActive = key === appState.selectedDay;
     const isToday = key === todayDay;
     let cls = '';
@@ -989,6 +1004,21 @@ function renderTrainingView() {
   const dayInfo = PLAN.schedule[dayId];
   const dayData = phase.days[dayId];
 
+  // 如果该训练日对应的星期几未被勾选（属于用户标记的非训练日）
+  if (dayInfo && !settings.trainingDays[dayInfo.weekday]) {
+    document.getElementById('exerciseList').innerHTML = '<div class="empty-state"><div class="icon">😴</div>非训练日<br><small>在「设置」中勾选后可恢复训练</small></div>';
+    document.getElementById('dayTitle').textContent = `${dayInfo.short}：${dayInfo.name}`;
+    document.getElementById('dayLocation').textContent = '休息';
+    document.getElementById('dayLocation').className = 'location rest';
+    document.getElementById('warmupBlock').innerHTML = '';
+    document.getElementById('completionFill').style.width = '0%';
+    document.getElementById('completionLabel').textContent = '';
+    document.getElementById('dayDate').textContent = '';
+    currentTrainingDate = null;
+    currentDayId = null;
+    return;
+  }
+
   if (!dayData) {
     document.getElementById('exerciseList').innerHTML = '<div class="empty-state"><div class="icon">🏖️</div>休息日</div>';
     document.getElementById('dayTitle').textContent = dayInfo ? `${dayInfo.short}：${dayInfo.name}` : '休息日';
@@ -998,6 +1028,8 @@ function renderTrainingView() {
     document.getElementById('completionFill').style.width = '0%';
     document.getElementById('completionLabel').textContent = '';
     document.getElementById('dayDate').textContent = '';
+    currentTrainingDate = null;
+    currentDayId = null;
     return;
   }
 
@@ -1504,6 +1536,8 @@ document.querySelectorAll('.bottom-nav button').forEach(btn => {
     document.getElementById('historyView').classList.toggle('active', tab === 'history');
     document.getElementById('settingsView').classList.toggle('active', tab === 'settings');
 
+    // 切回训练页时刷新视图，确保设置变更（训练日 / 日期）已生效
+    if (tab === 'training') renderAll();
     if (tab === 'history') renderHistoryView();
     if (tab === 'settings') renderSettingsView();
   });
