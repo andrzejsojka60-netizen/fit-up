@@ -10,9 +10,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Fit Up">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="manifest.json" crossorigin="use-credentials">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
+<link rel="apple-touch-icon-precomposed" href="icon-192.png">
 <style>
 :root {
   --bg: #f6f8fa;
@@ -1567,9 +1571,20 @@ document.addEventListener('keydown', (e) => {
 // 初始化
 // ============================================================================
 function init() {
-  // 注册 Service Worker（离线缓存 / PWA 安装）
+  // 注册 Service Worker（PWA 离线缓存 / 自动更新）
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    navigator.serviceWorker.register('sw.js', { scope: './' }).then(reg => {
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (newWorker) {
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              console.log('[PWA] 新版本已缓存，刷新后更新');
+            }
+          });
+        }
+      });
+    }).catch(() => {});
   }
 
   appState.selectedWeek = getCurrentWeek();

@@ -2,16 +2,22 @@
   "name": "Fit Up · 健身训练追踪",
   "short_name": "Fit Up",
   "description": "12周推拉蹲渐进式健身训练计划 · 1RM自动推荐 · 移动端优化",
+  "id": "fit-up-pwa-2026",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
   "background_color": "#f6f8fa",
   "theme_color": "#0969da",
+  "lang": "zh-CN",
+  "dir": "ltr",
   "icons": [
     {
       "src": "icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "icon-512.png",
@@ -20,5 +26,9 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["health", "fitness", "lifestyle"]
+  "screenshots": [],
+  "categories": ["health", "fitness", "lifestyle"],
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  }
 }
