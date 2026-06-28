@@ -480,6 +480,41 @@ main { padding: 16px 14px; }
   background: none; border: none; color: rgba(255,255,255,.7);
   font-size: 1.2rem; padding: 4px; cursor: pointer; line-height: 1;
 }
+
+/* ── Install Banner (Add to Home Screen) ── */
+.install-banner {
+  position: fixed; bottom: 72px; left: 16px; right: 16px; z-index: 998;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px; padding: 14px 18px;
+  display: flex; align-items: center; gap: 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,.12);
+  transform: translateY(120px); opacity: 0;
+  transition: transform .35s cubic-bezier(.16,1,.3,1), opacity .25s;
+  pointer-events: none;
+  flex-wrap: wrap;
+}
+.install-banner.show {
+  transform: translateY(0); opacity: 1; pointer-events: auto;
+}
+.install-banner-text {
+  display: flex; flex-direction: column; gap: 2px; flex: 1 1 160px;
+}
+.install-banner-text strong { font-size: 0.85rem; color: var(--text); }
+.install-banner-text span { font-size: 0.72rem; color: var(--text2); }
+.install-banner-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.install-banner-actions .btn-install {
+  background: var(--accent); color: #fff; border: none;
+  padding: 8px 18px; border-radius: 10px; font-size: 0.8rem;
+  font-weight: 700; cursor: pointer; white-space: nowrap;
+  transition: transform .12s;
+}
+.install-banner-actions .btn-install:active { transform: scale(.94); }
+.install-banner-actions .btn-dismiss {
+  background: transparent; color: var(--text2); border: 1px solid var(--border);
+  padding: 8px 14px; border-radius: 10px; font-size: 0.78rem;
+  cursor: pointer; white-space: nowrap;
+}
 </style>
 </head>
 <body>
@@ -566,6 +601,18 @@ main { padding: 16px 14px; }
 <!-- History detail overlay -->
 <div class="history-detail-overlay" id="historyOverlay">
   <div class="history-detail-panel" id="historyDetail"></div>
+</div>
+
+<!-- PWA install banner (Add to Home Screen) -->
+<div class="install-banner" id="installBanner">
+  <div class="install-banner-text">
+    <strong>📱 添加到主屏幕</strong>
+    <span>像原生 App 一样使用 Fit Up</span>
+  </div>
+  <div class="install-banner-actions">
+    <button class="btn-dismiss" id="installDismiss">稍后</button>
+    <button class="btn-install" id="installBtn">立即安装</button>
+  </div>
 </div>
 
 <!-- PWA update notification banner -->
@@ -1635,6 +1682,39 @@ document.addEventListener('keydown', (e) => {
     document.getElementById('saveFeedback').innerHTML = '<div class="save-feedback success">✅ 已保存 (Ctrl+S)</div>';
     setTimeout(() => { document.getElementById('saveFeedback').innerHTML = ''; }, 1500);
   }
+});
+
+// ============================================================================
+// PWA 安装提示（beforeinstallprompt）
+// ============================================================================
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (!sessionStorage.getItem('installDismissed')) {
+    document.getElementById('installBanner').classList.add('show');
+  }
+});
+
+document.getElementById('installBtn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  console.log('[PWA] Install outcome:', outcome);
+  deferredPrompt = null;
+  document.getElementById('installBanner').classList.remove('show');
+});
+
+document.getElementById('installDismiss').addEventListener('click', () => {
+  document.getElementById('installBanner').classList.remove('show');
+  sessionStorage.setItem('installDismissed', '1');
+});
+
+window.addEventListener('appinstalled', () => {
+  console.log('[PWA] App installed successfully');
+  document.getElementById('installBanner').classList.remove('show');
+  deferredPrompt = null;
 });
 
 // ============================================================================
