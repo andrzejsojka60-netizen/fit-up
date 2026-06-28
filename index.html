@@ -2,8 +2,17 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>训练计划 · 推拉蹲</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Fit Up · 健身训练</title>
+<meta name="theme-color" content="#0969da">
+<meta name="description" content="12周推拉蹲渐进式健身训练计划 · 1RM自动推荐 · 移动端优化">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Fit Up">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
 :root {
   --bg: #f6f8fa;
@@ -35,9 +44,11 @@ body {
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
-  padding-bottom: 80px;
+  padding-bottom: max(80px, calc(env(safe-area-inset-bottom, 0px) + 60px));
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
+  -webkit-touch-callout: none;
+  overscroll-behavior: none;
 }
 
 /* ── Header ── */
@@ -61,7 +72,7 @@ header .week-row {
 }
 header .week-row button {
   background: var(--bg); color: var(--text); border: 1px solid var(--border);
-  width: 30px; height: 30px; border-radius: 50%;
+  width: 36px; height: 36px; border-radius: 50%;
   font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
   transition: all .15s;
 }
@@ -86,11 +97,12 @@ header .week-row button:active { background: var(--accent); border-color: var(--
 }
 .day-nav::-webkit-scrollbar { display: none; }
 .day-nav button {
-  flex: 0 0 auto; padding: 9px 16px; border-radius: 22px;
+  flex: 0 0 auto; padding: 10px 18px; border-radius: 22px;
   border: 1.5px solid var(--border); background: var(--surface);
-  color: var(--text2); font-size: 0.8rem; cursor: pointer;
+  color: var(--text2); font-size: 0.82rem; cursor: pointer;
   white-space: nowrap; transition: all .2s;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm); user-select: none;
+  -webkit-user-select: none;
 }
 .day-nav button:hover { border-color: var(--accent); color: var(--accent); }
 .day-nav button.active {
@@ -167,7 +179,7 @@ main { padding: 16px 14px; }
 }
 .set-row input {
   background: var(--bg); border: 1.5px solid var(--border); border-radius: var(--radius-sm);
-  color: var(--text); padding: 9px 8px; font-size: 0.85rem; width: 0; flex: 1;
+  color: var(--text); padding: 10px 8px; font-size: 16px; width: 0; flex: 1;
   text-align: center; min-width: 0; transition: all .15s;
   font-family: var(--font);
 }
@@ -177,9 +189,9 @@ main { padding: 16px 14px; }
 }
 .set-row .input-label { font-size: 0.7rem; color: var(--text2); flex-shrink: 0; font-weight: 500; }
 .set-row .set-done, .set-row .set-done-btn {
-  width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border);
+  width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--border);
   background: transparent; cursor: pointer; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center; font-size: 0.85rem;
+  display: flex; align-items: center; justify-content: center; font-size: 1rem;
   transition: all .15s; color: transparent;
 }
 .set-row .set-done:hover, .set-row .set-done-btn:hover { border-color: var(--accent2); background: rgba(26,127,55,.08); }
@@ -194,7 +206,7 @@ main { padding: 16px 14px; }
 .ex-notes-input {
   width: 100%; background: var(--bg); border: 1.5px solid var(--border);
   border-radius: var(--radius-sm); color: var(--text); padding: 10px 12px;
-  font-size: 0.8rem; margin-top: 4px; resize: vertical; min-height: 38px;
+  font-size: 16px; margin-top: 4px; resize: vertical; min-height: 38px;
   font-family: var(--font); transition: all .15s;
 }
 .ex-notes-input:focus {
@@ -235,12 +247,15 @@ main { padding: 16px 14px; }
   background: var(--surface); border-top: 1px solid var(--border);
   display: flex; z-index: 20;
   box-shadow: 0 -1px 4px rgba(31,35,40,.06);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .bottom-nav button {
   flex: 1; padding: 10px 8px 14px; background: transparent; border: none;
   color: var(--text2); font-size: 0.72rem; cursor: pointer;
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   transition: color .15s; position: relative;
+  user-select: none; -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 .bottom-nav button .nav-icon { font-size: 1.25rem; transition: transform .15s; }
 .bottom-nav button.active { color: var(--accent); }
@@ -288,7 +303,7 @@ main { padding: 16px 14px; }
 .history-detail-panel .close-btn {
   position: sticky; top: 0; float: right;
   background: var(--bg); border: 1px solid var(--border); color: var(--text);
-  width: 34px; height: 34px; border-radius: 50%; font-size: 1rem;
+  width: 40px; height: 40px; border-radius: 50%; font-size: 1.1rem;
   cursor: pointer; transition: all .15s; z-index: 1;
 }
 .history-detail-panel .close-btn:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
@@ -313,7 +328,7 @@ main { padding: 16px 14px; }
 .settings-card input, .settings-card select {
   width: 100%; background: var(--bg); border: 1.5px solid var(--border);
   border-radius: var(--radius-sm); color: var(--text); padding: 10px 12px;
-  font-size: 0.9rem; margin-bottom: 12px; font-family: var(--font);
+  font-size: 16px; margin-bottom: 12px; font-family: var(--font);
   transition: all .15s;
 }
 .settings-card input:focus, .settings-card select:focus {
@@ -322,9 +337,10 @@ main { padding: 16px 14px; }
 }
 .settings-card .day-check-group { display: flex; flex-wrap: wrap; gap: 8px; }
 .settings-card .day-check {
-  padding: 9px 16px; border: 1.5px solid var(--border); border-radius: 20px;
-  font-size: 0.8rem; cursor: pointer; user-select: none; transition: all .15s;
+  padding: 11px 18px; border: 1.5px solid var(--border); border-radius: 20px;
+  font-size: 0.82rem; cursor: pointer; user-select: none; transition: all .15s;
   font-weight: 500; background: var(--bg);
+  -webkit-tap-highlight-color: transparent;
 }
 .settings-card .day-check:hover { border-color: var(--accent); }
 .settings-card .day-check.checked {
@@ -1551,6 +1567,11 @@ document.addEventListener('keydown', (e) => {
 // 初始化
 // ============================================================================
 function init() {
+  // 注册 Service Worker（离线缓存 / PWA 安装）
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
   appState.selectedWeek = getCurrentWeek();
   appState.selectedPhase = getPhaseForWeek(appState.selectedWeek);
 
