@@ -1,7 +1,7 @@
 {
   "name": "Fit Up · 健身训练追踪",
   "short_name": "Fit Up",
-  "description": "12周推拉蹲渐进式健身训练计划 · 1RM自动推荐 · 移动端优化",
+  "description": "动态健身训练计划 · 智能生成 · 1RM自动推荐 · 移动端优化",
   "id": "fit-up-pwa-2026",
   "start_url": "./",
   "scope": "./",

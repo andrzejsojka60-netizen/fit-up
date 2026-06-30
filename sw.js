@@ -1,6 +1,6 @@
-// Fit Up Service Worker — offline cache v3
+// Fit Up Service Worker — offline cache v5
 // Strategy: network-first (3s timeout) for HTML, cache-first for static assets
-const CACHE = 'fitup-v3';
+const CACHE = 'fitup-v5';
 const ASSETS = [
   './',
   './index.html',

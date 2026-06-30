@@ -378,6 +378,34 @@ main { padding: 16px 14px; }
 }
 .one-rm-item .unit { font-size: 0.75rem; color: var(--text2); flex-shrink: 0; }
 
+/* 训练偏好设置网格 */
+.settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.settings-field { display: flex; flex-direction: column; gap: 4px; }
+.settings-field label { font-size: 0.75rem; color: var(--text2); margin-bottom: 0 !important; }
+.settings-field select {
+  font-size: 0.85rem; padding: 8px 10px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--bg); color: var(--text);
+  cursor: pointer; appearance: auto; width: 100%;
+}
+.settings-field select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(9,105,218,.1); }
+
+/* 每日状态条 */
+.readiness-bar {
+  display: flex; align-items: center; gap: 8px; padding: 8px 14px;
+  background: var(--bg); border-radius: var(--radius); margin-bottom: 12px;
+  border: 1px solid var(--border); flex-wrap: wrap;
+}
+.readiness-label { font-size: 0.78rem; color: var(--text2); font-weight: 600; white-space: nowrap; }
+.readiness-btn {
+  flex: 1; min-width: 70px; padding: 7px 10px; border: 2px solid var(--border);
+  border-radius: 20px; font-size: 0.75rem; cursor: pointer; background: var(--bg);
+  color: var(--text); transition: all .15s; font-weight: 500;
+}
+.readiness-btn:hover { background: var(--surface-hover); }
+.readiness-btn.active-green { border-color: #34c759; background: #e8f8ed; color: #1b7a30; }
+.readiness-btn.active-yellow { border-color: #ff9500; background: #fff3e0; color: #b26500; }
+.readiness-btn.active-red { border-color: #ff3b30; background: #fdeaea; color: #b82020; }
+
 /* 推荐重量标签 */
 .rec-weight {
   background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
@@ -538,6 +566,12 @@ main { padding: 16px 14px; }
 <main>
   <!-- Training View -->
   <div id="trainingView">
+    <div class="readiness-bar" id="readinessBar">
+      <span class="readiness-label">今日状态</span>
+      <button class="readiness-btn active-green" data-level="high">🟢 精力充沛</button>
+      <button class="readiness-btn" data-level="medium">🟡 一般</button>
+      <button class="readiness-btn" data-level="low">🔴 需要恢复</button>
+    </div>
     <div class="day-header">
       <h2 id="dayTitle">Day 1：下肢力量主导</h2>
       <div class="meta">
@@ -572,6 +606,49 @@ main { padding: 16px 14px; }
       <h3>📅 每周训练日</h3>
       <label>勾选你固定训练的日子（用于自动匹配）</label>
       <div class="day-check-group" id="weekdayChecks"></div>
+    </div>
+    <div class="settings-card">
+      <h3>🎯 训练偏好设置</h3>
+      <div class="settings-grid">
+        <div class="settings-field">
+          <label>🏁 训练目标</label>
+          <select id="goalSelect">
+            <option value="hypertrophy">增肌（肌肥大）</option>
+            <option value="strength">力量（最大肌力）</option>
+            <option value="endurance">耐力 / 减脂</option>
+            <option value="general">综合体能</option>
+          </select>
+        </div>
+        <div class="settings-field">
+          <label>🏋️ 可用器材</label>
+          <select id="equipmentSelect">
+            <option value="full_gym">健身房（全器械）</option>
+            <option value="barbell_dumbbell">杠铃 + 哑铃</option>
+            <option value="bodyweight">徒手自重</option>
+            <option value="bands">弹力带</option>
+          </select>
+        </div>
+        <div class="settings-field">
+          <label>📅 每周训练天数</label>
+          <select id="frequencySelect">
+            <option value="2">2天</option><option value="3">3天</option><option value="4">4天</option><option value="5" selected>5天</option><option value="6">6天</option>
+          </select>
+        </div>
+        <div class="settings-field">
+          <label>⭐ 训练经验</label>
+          <select id="experienceSelect">
+            <option value="beginner">新手（<6个月）</option>
+            <option value="intermediate" selected>中级（6月-2年）</option>
+            <option value="advanced">高级（2年+）</option>
+          </select>
+        </div>
+        <div class="settings-field">
+          <label>⏱ 每次训练时长</label>
+          <select id="sessionLengthSelect">
+            <option value="30">30分钟</option><option value="45">45分钟</option><option value="60" selected>60分钟</option><option value="90">90分钟</option>
+          </select>
+        </div>
+      </div>
     </div>
     <div class="settings-card">
       <h3>🏋️ 极限重量 (1RM)</h3>
@@ -811,10 +888,416 @@ const PLAN = {
   ]
 };
 
+// ============================================================================
+// 动态训练计划生成引擎
+// ============================================================================
+
+// --- 动作数据库 (EXERCISE_DB) ---
+// 结构: { id, name, primaryMuscle, equipment[], movementPattern, mechanic, level, category, hasWeight, note }
+const EXERCISE_DB = [
+  // ========== 蹲类 (Squat) - 复合 ==========
+  { id:"barbell_back_squat",       name:"杠铃后蹲",       primaryMuscle:"quads",    equipment:["barbell","power_rack"],         movementPattern:"squat", mechanic:"compound", level:"intermediate", category:"main", hasWeight:true,  note:"杠位：斜方肌上束，肩胛收紧形成肉垫" },
+  { id:"barbell_front_squat",      name:"杠铃前蹲",       primaryMuscle:"quads",    equipment:["barbell","power_rack"],         movementPattern:"squat", mechanic:"compound", level:"intermediate", category:"main", hasWeight:true,  note:"杠位：锁骨前三角肌，肘抬高保持躯干直立" },
+  { id:"goblet_squat",             name:"高脚杯深蹲",     primaryMuscle:"quads",    equipment:["dumbbell","kettlebell"],        movementPattern:"squat", mechanic:"compound", level:"beginner",   category:"main", hasWeight:true,  note:"哑铃贴胸，肘触膝内侧，底部停顿1秒" },
+  { id:"bulgarian_split_squat",    name:"保加利亚分腿蹲", primaryMuscle:"quads",    equipment:["dumbbell","flat_bench"],        movementPattern:"squat", mechanic:"compound", level:"intermediate", category:"main", hasWeight:true,  note:"后脚置于凳面，躯干直立，控制下降" },
+  { id:"bodyweight_squat",         name:"自重深蹲",       primaryMuscle:"quads",    equipment:["bodyweight"],                   movementPattern:"squat", mechanic:"compound", level:"beginner",   category:"main", hasWeight:false, note:"重点：深度、节奏控制，可以暂停增加难度" },
+  { id:"pistol_squat",             name:"手枪深蹲",       primaryMuscle:"quads",    equipment:["bodyweight"],                   movementPattern:"squat", mechanic:"compound", level:"advanced",   category:"main", hasWeight:false, note:"单腿深蹲，另一腿前伸，扶墙渐进" },
+  { id:"leg_press",                name:"器械腿举",       primaryMuscle:"quads",    equipment:["machine"],                      movementPattern:"squat", mechanic:"compound", level:"beginner",   category:"main", hasWeight:true,  note:"脚位调整刺激不同区域，不过伸膝关节" },
+  { id:"hack_squat",               name:"哈克深蹲",       primaryMuscle:"quads",    equipment:["machine"],                      movementPattern:"squat", mechanic:"compound", level:"intermediate", category:"main", hasWeight:true,  note:"背贴靠垫，控制下降，底部驱动力从脚跟" },
+  { id:"band_squat",               name:"弹力带深蹲",     primaryMuscle:"quads",    equipment:["bands"],                        movementPattern:"squat", mechanic:"compound", level:"beginner",   category:"main", hasWeight:true,  note:"弹力带踩在脚下提供阻力，侧重顶部收缩" },
+  { id:"lunges",                   name:"哑铃弓步走",     primaryMuscle:"quads",    equipment:["dumbbell"],                     movementPattern:"squat", mechanic:"compound", level:"beginner",   category:"main", hasWeight:true,  note:"前进弓步，后膝触地，躯干保持直立" },
+  { id:"step_up",                  name:"哑铃登阶",       primaryMuscle:"glutes",   equipment:["dumbbell","flat_bench"],        movementPattern:"squat", mechanic:"compound", level:"beginner",   category:"accessory", hasWeight:true, note:"单腿上凳，强调臀肌发力，控制下降" },
+
+  // ========== 铰链类 (Hinge) - 复合 ==========
+  { id:"barbell_deadlift",         name:"杠铃传统硬拉",   primaryMuscle:"hamstrings", equipment:["barbell"],                   movementPattern:"hinge", mechanic:"compound", level:"intermediate", category:"main", hasWeight:true,  note:"髋铰链模式启动，保持脊柱中立，杠铃贴近小腿" },
+  { id:"barbell_romanian_dl",      name:"杠铃罗马尼亚硬拉", primaryMuscle:"hamstrings", equipment:["barbell"],                 movementPattern:"hinge", mechanic:"compound", level:"intermediate", category:"main", hasWeight:true,  note:"微屈膝，髋向后推，杠铃沿腿下放至小腿中段" },
+  { id:"trap_bar_deadlift",        name:"六角杠硬拉",     primaryMuscle:"hamstrings", equipment:["barbell"],                   movementPattern:"hinge", mechanic:"compound", level:"intermediate", category:"main", hasWeight:true,  note:"重心在身体中轴线上，对下背压力小于传统硬拉" },
+  { id:"dumbbell_rdl",             name:"哑铃罗马尼亚硬拉", primaryMuscle:"hamstrings", equipment:["dumbbell"],                 movementPattern:"hinge", mechanic:"compound", level:"beginner",   category:"main", hasWeight:true,  note:"哑铃贴腿下滑，感受腘绳肌拉伸，控制离心" },
+  { id:"kb_swing",                 name:"壶铃/哑铃摆荡",  primaryMuscle:"glutes",   equipment:["dumbbell","kettlebell"],        movementPattern:"hinge", mechanic:"compound", level:"beginner",   category:"main", hasWeight:true,  note:"髋铰链发力弹起，手臂仅做挂钩，腘绳肌+臀爆发" },
+  { id:"single_leg_rdl",           name:"单腿罗马尼亚硬拉", primaryMuscle:"hamstrings", equipment:["dumbbell"],                movementPattern:"hinge", mechanic:"compound", level:"intermediate", category:"accessory", hasWeight:true, note:"支撑腿微屈，髋铰链模式，提升平衡与后链力量" },
+  { id:"barbell_hip_thrust",       name:"杠铃臀推",       primaryMuscle:"glutes",   equipment:["barbell","flat_bench"],         movementPattern:"hinge", mechanic:"compound", level:"intermediate", category:"main", hasWeight:true,  note:"上背置于凳沿，杠铃置于髋部，顶部臀肌收缩2秒" },
+  { id:"dumbbell_hip_thrust",      name:"哑铃臀推",       primaryMuscle:"glutes",   equipment:["dumbbell","flat_bench"],        movementPattern:"hinge", mechanic:"compound", level:"beginner",   category:"main", hasWeight:true,  note:"上背置于凳沿，哑铃置髋部，爆发向心" },
+  { id:"glute_bridge",             name:"臀桥",           primaryMuscle:"glutes",   equipment:["bodyweight"],                   movementPattern:"hinge", mechanic:"compound", level:"beginner",   category:"main", hasWeight:false, note:"仰卧屈膝，臀部发力顶起，顶部收缩2秒" },
+  { id:"band_pull_through",        name:"弹力带穿腿拉",   primaryMuscle:"glutes",   equipment:["bands"],                        movementPattern:"hinge", mechanic:"compound", level:"beginner",   category:"accessory", hasWeight:true,  note:"弹力带固定于低锚点，髋铰链后推，臀爆发前推" },
+  { id:"back_extension",           name:"背伸展/山羊挺身", primaryMuscle:"lower_back", equipment:["bodyweight","machine"],       movementPattern:"hinge", mechanic:"compound", level:"beginner",   category:"accessory", hasWeight:false, note:"髋关节为轴，上身从屈曲到中立，不过伸腰椎" },
+  { id:"good_morning",             name:"早安式体前屈",   primaryMuscle:"hamstrings", equipment:["barbell"],                   movementPattern:"hinge", mechanic:"compound", level:"intermediate", category:"accessory", hasWeight:true,  note:"杠铃置斜方肌，髋铰链后推，控制下放与起身" },
+
+  // ========== 水平推 (Horizontal Push) ==========
+  { id:"barbell_bench_press",      name:"杠铃平板卧推",   primaryMuscle:"chest",    equipment:["barbell","flat_bench"],         movementPattern:"horizontal_push", mechanic:"compound", level:"intermediate", category:"main", hasWeight:true,  note:"肩胛全程收紧，肘与躯干约45°，双脚踩实" },
+  { id:"dumbbell_bench_press",     name:"哑铃平板卧推",   primaryMuscle:"chest",    equipment:["dumbbell","flat_bench"],        movementPattern:"horizontal_push", mechanic:"compound", level:"beginner",   category:"main", hasWeight:true,  note:"哑铃对握或正握，肩胛收紧，底部停顿" },
+  { id:"incline_barbell_bench",    name:"上斜杠铃卧推",   primaryMuscle:"chest",    equipment:["barbell","incline_bench"],      movementPattern:"horizontal_push", mechanic:"compound", level:"intermediate", category:"main", hasWeight:true,  note:"凳面调至30-45°，强化上胸，不过伸腰椎" },
+  { id:"incline_dumbbell_bench",   name:"上斜哑铃卧推",   primaryMuscle:"chest",    equipment:["dumbbell","incline_bench"],     movementPattern:"horizontal_push", mechanic:"compound", level:"intermediate", category:"main", hasWeight:true,  note:"30°凳面，上胸发力感，控制离心" },
+  { id:"push_up",                  name:"俯卧撑",         primaryMuscle:"chest",    equipment:["bodyweight"],                   movementPattern:"horizontal_push", mechanic:"compound", level:"beginner",   category:"main", hasWeight:false, note:"手肩略宽，身体成板，核心收紧，胸触地" },
+  { id:"deficit_push_up",          name:"赤字俯卧撑",     primaryMuscle:"chest",    equipment:["bodyweight"],                   movementPattern:"horizontal_push", mechanic:"compound", level:"intermediate", category:"main", hasWeight:false, note:"双手置于垫高物，增加下降幅度，更强调胸肌拉伸" },
+  { id:"band_push_up",             name:"弹力带俯卧撑",   primaryMuscle:"chest",    equipment:["bands"],                        movementPattern:"horizontal_push", mechanic:"compound", level:"intermediate", category:"main", hasWeight:true,  note:"弹力带绕背交叉，增加推起阻力" },
+  { id:"machine_chest_press",      name:"器械推胸",       primaryMuscle:"chest",    equipment:["machine"],                      movementPattern:"horizontal_push", mechanic:"compound", level:"beginner",   category:"main", hasWeight:true,  note:"安全稳定，适合新手或收尾高容量组" },
+  { id:"dumbbell_fly",             name:"哑铃飞鸟",       primaryMuscle:"chest",    equipment:["dumbbell","flat_bench"],        movementPattern:"horizontal_push", mechanic:"isolation", level:"intermediate", category:"accessory", hasWeight:true,  note:"微屈肘保持弧度，底部充分拉伸胸肌，不过度伸展肩" },
+  { id:"close_grip_bench",         name:"窄距卧推",       primaryMuscle:"triceps",  equipment:["barbell","flat_bench"],         movementPattern:"horizontal_push", mechanic:"compound", level:"intermediate", category:"accessory", hasWeight:true,  note:"握距肩宽，肘贴身体，三头主导发力" },
+
+  // ========== 垂直推 (Vertical Push) ==========
+  { id:"barbell_ohp",              name:"杠铃站姿推举",   primaryMuscle:"shoulders", equipment:["barbell"],                    movementPattern:"vertical_push", mechanic:"compound", level:"intermediate", category:"main", hasWeight:true,  note:"核心绷紧+臀收紧防过伸，杠铃直线上推" },
+  { id:"dumbbell_shoulder_press",  name:"哑铃推举",       primaryMuscle:"shoulders", equipment:["dumbbell"],                   movementPattern:"vertical_push", mechanic:"compound", level:"beginner",   category:"main", hasWeight:true,  note:"坐姿或站姿，肘微前，全程控制，顶部不锁死" },
+  { id:"arnold_press",             name:"阿诺德推举",     primaryMuscle:"shoulders", equipment:["dumbbell"],                   movementPattern:"vertical_push", mechanic:"compound", level:"intermediate", category:"accessory", hasWeight:true,  note:"底部掌心朝胸→上推同时旋转至掌心朝前，增加肩前束行程" },
+  { id:"pike_push_up",             name:"派克俯卧撑",     primaryMuscle:"shoulders", equipment:["bodyweight"],                  movementPattern:"vertical_push", mechanic:"compound", level:"intermediate", category:"main", hasWeight:false, note:"身体呈倒V，头顶下降至地，侧重肩前中束" },
+  { id:"handstand_push_up",        name:"倒立撑",         primaryMuscle:"shoulders", equipment:["bodyweight"],                  movementPattern:"vertical_push", mechanic:"compound", level:"advanced",   category:"main", hasWeight:false, note:"靠墙倒立，控制下降至头顶轻触地，推起至手臂伸直" },
+  { id:"lateral_raise",            name:"哑铃侧平举",     primaryMuscle:"shoulders", equipment:["dumbbell"],                   movementPattern:"vertical_push", mechanic:"isolation", level:"beginner",   category:"accessory", hasWeight:true,  note:"轻重量慢速控制，肘微屈保持角度不变，不耸肩" },
+  { id:"front_raise",              name:"哑铃前平举",     primaryMuscle:"shoulders", equipment:["dumbbell"],                   movementPattern:"vertical_push", mechanic:"isolation", level:"beginner",   category:"accessory", hasWeight:true,  note:"双臂交替前举至肩高，控制下放，不借力" },
+  { id:"band_lateral_raise",       name:"弹力带侧平举",   primaryMuscle:"shoulders", equipment:["bands"],                        movementPattern:"vertical_push", mechanic:"isolation", level:"beginner",   category:"accessory", hasWeight:true,  note:"弹力带踩在脚下，慢速控制外展，可单侧进行" },
+  { id:"band_ohp",                 name:"弹力带推举",     primaryMuscle:"shoulders", equipment:["bands"],                        movementPattern:"vertical_push", mechanic:"compound", level:"beginner",   category:"main", hasWeight:true,  note:"弹力带踩在脚下，双手上推过头顶" },
+
+  // ========== 水平拉 (Horizontal Pull) ==========
+  { id:"barbell_row",              name:"杠铃俯身划船",   primaryMuscle:"back",     equipment:["barbell"],                      movementPattern:"horizontal_pull", mechanic:"compound", level:"intermediate", category:"main", hasWeight:true,  note:"髋铰链姿势，先启动肩胛→再拉手臂，杠铃拉向下腹" },
+  { id:"dumbbell_row",             name:"哑铃单臂划船",   primaryMuscle:"back",     equipment:["dumbbell","flat_bench"],         movementPattern:"horizontal_pull", mechanic:"compound", level:"beginner",   category:"main", hasWeight:true,  note:"一手扶凳，充分拉伸背阔，肘贴身体后拉" },
+  { id:"seated_cable_row",         name:"坐姿绳索划船",   primaryMuscle:"back",     equipment:["cable"],                         movementPattern:"horizontal_pull", mechanic:"compound", level:"beginner",   category:"main", hasWeight:true,  note:"V柄，先启动肩胛→手臂后拉，顶峰收缩1秒" },
+  { id:"inverted_row",             name:"反向划船",       primaryMuscle:"back",     equipment:["bodyweight"],                    movementPattern:"horizontal_pull", mechanic:"compound", level:"beginner",   category:"main", hasWeight:false, note:"杠铃置深蹲架，身体悬吊，脚跟着地，胸部拉向杠" },
+  { id:"chest_supported_row",      name:"胸部支撑划船",   primaryMuscle:"back",     equipment:["dumbbell","incline_bench"],      movementPattern:"horizontal_pull", mechanic:"compound", level:"intermediate", category:"main", hasWeight:true,  note:"胸贴凳面消除作弊，专注肩胛收缩" },
+  { id:"band_row",                 name:"弹力带划船",     primaryMuscle:"back",     equipment:["bands"],                         movementPattern:"horizontal_pull", mechanic:"compound", level:"beginner",   category:"main", hasWeight:true,  note:"弹力带固定于前锚点，坐姿或站姿后拉" },
+  { id:"machine_row",              name:"器械划船",       primaryMuscle:"back",     equipment:["machine"],                       movementPattern:"horizontal_pull", mechanic:"compound", level:"beginner",   category:"main", hasWeight:true,  note:"稳定支撑，适合新手或高容量收尾" },
+  { id:"face_pull",                name:"绳索/弹力带面拉", primaryMuscle:"rear_delts", equipment:["cable","bands"],              movementPattern:"horizontal_pull", mechanic:"isolation", level:"beginner",   category:"corrective", hasWeight:true, note:"拉向面部，上臂外旋+水平外展，体态维护核心动作" },
+  { id:"dumbbell_reverse_fly",     name:"俯身反向飞鸟",   primaryMuscle:"rear_delts", equipment:["dumbbell"],                  movementPattern:"horizontal_pull", mechanic:"isolation", level:"intermediate", category:"accessory", hasWeight:true,  note:"俯身，微屈肘，水平外展至肩胛收缩，不耸肩" },
+
+  // ========== 垂直拉 (Vertical Pull) ==========
+  { id:"pull_up",                  name:"引体向上",       primaryMuscle:"back",    equipment:["bodyweight","pull_up_bar"],       movementPattern:"vertical_pull", mechanic:"compound", level:"intermediate", category:"main", hasWeight:false, note:"正握，肩胛启动优先→屈肘拉至下巴过杠，控制离心2-3秒" },
+  { id:"chin_up",                  name:"反握引体向上",   primaryMuscle:"back",    equipment:["bodyweight","pull_up_bar"],       movementPattern:"vertical_pull", mechanic:"compound", level:"intermediate", category:"main", hasWeight:false, note:"反握掌心朝己，更强二头参与，同样肩胛启动优先" },
+  { id:"lat_pulldown",             name:"高位下拉",       primaryMuscle:"back",    equipment:["cable"],                          movementPattern:"vertical_pull", mechanic:"compound", level:"beginner",   category:"main", hasWeight:true,  note:"宽握，微后倾，先启动肩胛→下拉至锁骨，控制回放" },
+  { id:"band_pulldown",            name:"弹力带高位下拉", primaryMuscle:"back",    equipment:["bands"],                          movementPattern:"vertical_pull", mechanic:"compound", level:"beginner",   category:"main", hasWeight:true,  note:"弹力带固定高锚点，跪姿或坐姿下拉，模拟缆绳下拉" },
+  { id:"straight_arm_pulldown",    name:"直臂下拉",       primaryMuscle:"back",    equipment:["cable","bands"],                  movementPattern:"vertical_pull", mechanic:"isolation", level:"intermediate", category:"accessory", hasWeight:true,  note:"肘微屈保持角度不变，肩关节为轴，背阔肌发力压下" },
+  { id:"machine_pulldown",         name:"器械下拉",       primaryMuscle:"back",    equipment:["machine"],                        movementPattern:"vertical_pull", mechanic:"compound", level:"beginner",   category:"main", hasWeight:true,  note:"固定运动轨迹，适合新手学习肩胛启动模式" },
+
+  // ========== 负重行走 (Carry) ==========
+  { id:"farmers_walk",             name:"农夫行走",       primaryMuscle:"core",     equipment:["dumbbell","kettlebell"],          movementPattern:"carry", mechanic:"compound", level:"beginner",   category:"main", hasWeight:true,  note:"双手持重物，核心绷紧，肩胛下沉，快步行走" },
+  { id:"suitcase_carry",           name:"单侧提箱行走",   primaryMuscle:"obliques", equipment:["dumbbell","kettlebell"],          movementPattern:"carry", mechanic:"compound", level:"intermediate", category:"accessory", hasWeight:true,  note:"单手持重，另一侧腰腹抗侧屈，走直线" },
+  { id:"overhead_carry",           name:"过头支撑行走",   primaryMuscle:"shoulders", equipment:["dumbbell","kettlebell"],         movementPattern:"carry", mechanic:"compound", level:"advanced",   category:"accessory", hasWeight:true,  note:"单臂或双臂过头持重行走，肩稳定性终极挑战" },
+
+  // ========== 核心 (Core) ==========
+  { id:"plank",                    name:"平板支撑",       primaryMuscle:"abs",      equipment:["bodyweight"],                     movementPattern:"core", mechanic:"isolation", level:"beginner",   category:"core", hasWeight:false, note:"肘支撑，身体成板，臀不过高/低，腹横肌收紧" },
+  { id:"dead_bug",                 name:"死虫式",         primaryMuscle:"abs",      equipment:["bodyweight"],                     movementPattern:"core", mechanic:"isolation", level:"beginner",   category:"corrective", hasWeight:false, note:"仰卧交替伸展对侧手脚，腰椎始终贴地" },
+  { id:"hanging_knee_raise",       name:"悬垂膝举",       primaryMuscle:"abs",      equipment:["bodyweight","pull_up_bar"],       movementPattern:"core", mechanic:"isolation", level:"intermediate", category:"core", hasWeight:false, note:"悬垂于杠上，膝举至胸高，控制离心，不借力摆动" },
+  { id:"ab_wheel_rollout",         name:"健腹轮",         primaryMuscle:"abs",      equipment:["bodyweight"],                     movementPattern:"core", mechanic:"compound", level:"intermediate", category:"core", hasWeight:false, note:"跪姿→站姿渐进，不过伸腰椎，腹肌全程紧绷" },
+  { id:"pallof_press",             name:"帕洛夫推",       primaryMuscle:"abs",      equipment:["bands","cable"],                  movementPattern:"core", mechanic:"isolation", level:"beginner",   category:"corrective", hasWeight:true,  note:"侧向抗旋转，弹力带/绳索侧面推离身体，躯干不动" },
+  { id:"russian_twist",            name:"俄罗斯转体",     primaryMuscle:"obliques", equipment:["bodyweight","dumbbell"],          movementPattern:"core", mechanic:"isolation", level:"beginner",   category:"core", hasWeight:false, note:"臀着地脚离地，双手交替左右转体，控制节奏" },
+  { id:"side_plank",               name:"侧平板支撑",     primaryMuscle:"obliques", equipment:["bodyweight"],                     movementPattern:"core", mechanic:"isolation", level:"beginner",   category:"core", hasWeight:false, note:"肘支撑侧身，髋部不下沉，另一手上举增加难度" },
+  { id:"bird_dog",                 name:"鸟狗式",         primaryMuscle:"lower_back", equipment:["bodyweight"],                   movementPattern:"core", mechanic:"isolation", level:"beginner",   category:"corrective", hasWeight:false, note:"四足跪姿，交替伸展对侧手脚，脊柱中立不旋转" },
+  { id:"leg_raise",                name:"仰卧抬腿",       primaryMuscle:"abs",      equipment:["bodyweight"],                     movementPattern:"core", mechanic:"isolation", level:"beginner",   category:"core", hasWeight:false, note:"仰卧双腿上举至90°→控制下放，腰椎贴地" },
+  { id:"band_anti_rotation",       name:"弹力带抗旋转",   primaryMuscle:"obliques", equipment:["bands"],                          movementPattern:"core", mechanic:"isolation", level:"beginner",   category:"corrective", hasWeight:true,  note:"弹力带侧向拉，双臂前伸不旋转，核心稳定对抗" },
+
+  // ========== 孤立/辅助动作 (Accessory/Isolation) ==========
+  { id:"bicep_curl",               name:"哑铃弯举",       primaryMuscle:"biceps",   equipment:["dumbbell"],                      movementPattern:"accessory", mechanic:"isolation", level:"beginner",   category:"accessory", hasWeight:true,  note:"控制离心3秒，不过度借力" },
+  { id:"hammer_curl",              name:"锤式弯举",       primaryMuscle:"biceps",   equipment:["dumbbell"],                      movementPattern:"accessory", mechanic:"isolation", level:"beginner",   category:"accessory", hasWeight:true,  note:"掌心相对(中立握)，增强肱肌与肱桡肌" },
+  { id:"band_curl",                name:"弹力带弯举",     primaryMuscle:"biceps",   equipment:["bands"],                         movementPattern:"accessory", mechanic:"isolation", level:"beginner",   category:"accessory", hasWeight:true,  note:"弹力带踩脚下，控制向心与离心，阻力曲线均匀" },
+  { id:"tricep_pushdown",          name:"绳索三头下压",   primaryMuscle:"triceps",  equipment:["cable"],                         movementPattern:"accessory", mechanic:"isolation", level:"beginner",   category:"accessory", hasWeight:true,  note:"肘贴身体，顶部不锁死，顶峰收缩" },
+  { id:"overhead_tricep_ext",      name:"过头三头伸展",   primaryMuscle:"triceps",  equipment:["dumbbell"],                      movementPattern:"accessory", mechanic:"isolation", level:"intermediate", category:"accessory", hasWeight:true,  note:"双手持哑铃过头，屈肘下放至颈后，三头孤立发力" },
+  { id:"band_tricep_pushdown",     name:"弹力带三头下压", primaryMuscle:"triceps",  equipment:["bands"],                         movementPattern:"accessory", mechanic:"isolation", level:"beginner",   category:"accessory", hasWeight:true,  note:"弹力带固定高锚点，肘贴身体下压" },
+  { id:"dips",                     name:"双杠臂屈伸",     primaryMuscle:"chest",    equipment:["bodyweight","parallel_bars"],    movementPattern:"accessory", mechanic:"compound", level:"intermediate", category:"main", hasWeight:false, note:"身体前倾→胸，垂直→三头，肩不过肘" },
+  { id:"bench_dip",                name:"凳上臂屈伸",     primaryMuscle:"triceps",  equipment:["bodyweight","flat_bench"],       movementPattern:"accessory", mechanic:"isolation", level:"beginner",   category:"accessory", hasWeight:false, note:"双手撑凳，脚跟着地，肘后屈，三头控制" },
+  { id:"band_kickback",            name:"弹力带三头后踢", primaryMuscle:"triceps",  equipment:["bands"],                         movementPattern:"accessory", mechanic:"isolation", level:"beginner",   category:"accessory", hasWeight:true,  note:"弹力带固定低锚点，肘固定后拉，孤立三头" },
+  { id:"calf_raise",               name:"站姿提踵",       primaryMuscle:"calves",   equipment:["bodyweight","dumbbell"],          movementPattern:"accessory", mechanic:"isolation", level:"beginner",   category:"accessory", hasWeight:true,  note:"底部拉伸、顶部停顿2秒，直腿+屈腿各做一组" },
+  { id:"band_pull_apart",          name:"弹力带肩外旋拉", primaryMuscle:"rear_delts", equipment:["bands"],                       movementPattern:"accessory", mechanic:"isolation", level:"beginner",   category:"corrective", hasWeight:true,  note:"弹力带双臂前伸→水平拉开，拇指朝上，肩带健康" },
+  { id:"dumbbell_pullover",        name:"哑铃仰卧上拉",   primaryMuscle:"chest",    equipment:["dumbbell","flat_bench"],         movementPattern:"accessory", mechanic:"isolation", level:"intermediate", category:"accessory", hasWeight:true,  note:"仰卧肩胛置凳沿，双手持哑铃过头→拉向胸部，拉伸胸+背阔" },
+  { id:"shrug",                    name:"哑铃耸肩",       primaryMuscle:"traps",    equipment:["dumbbell","barbell"],             movementPattern:"accessory", mechanic:"isolation", level:"beginner",   category:"accessory", hasWeight:true,  note:"肩胛上提(向耳)→顶峰收缩→慢放下，不绕肩" },
+  { id:"cable_lateral_raise",      name:"绳索侧平举",     primaryMuscle:"shoulders", equipment:["cable"],                        movementPattern:"accessory", mechanic:"isolation", level:"intermediate", category:"accessory", hasWeight:true,  note:"绳索低位交叉侧平举，全程张力均匀" },
+  { id:"band_bent_over_row",       name:"弹力带俯身划船", primaryMuscle:"back",     equipment:["bands"],                         movementPattern:"horizontal_pull", mechanic:"compound", level:"beginner",   category:"main", hasWeight:true,  note:"弹力带踩脚上，俯身划船动作，适合家庭训练" },
+];
+
+
+// --- 训练分化模板 ---
+const SPLIT_TEMPLATES = {
+  fullbody: {
+    name: '全身训练', minDays: 2, maxDays: 3,
+    days: [
+      { short: '全身A', label: '蹲推拉', patterns: ['squat','horizontal_push','horizontal_pull','core','accessory'] },
+      { short: '全身B', label: '铰链推拉', patterns: ['hinge','vertical_push','vertical_pull','core','accessory'] },
+      { short: '全身C', label: '混合', patterns: ['squat','horizontal_push','vertical_pull','carry','core'] },
+    ]
+  },
+  upperlower: {
+    name: '上下肢分化', minDays: 4, maxDays: 4,
+    days: [
+      { short: '上肢A', label: '水平推+垂直拉', patterns: ['horizontal_push','vertical_pull','accessory','accessory','core'] },
+      { short: '下肢A', label: '蹲+铰链', patterns: ['squat','hinge','carry','core'] },
+      { short: '上肢B', label: '垂直推+水平拉', patterns: ['vertical_push','horizontal_pull','accessory','accessory','core'] },
+      { short: '下肢B', label: '铰链+辅助蹲', patterns: ['hinge','squat','carry','core'] },
+    ]
+  },
+  ppl: {
+    name: '推拉蹲 PPL', minDays: 5, maxDays: 6,
+    days: [
+      { short: '推', label: '胸+肩+三头', patterns: ['horizontal_push','vertical_push','accessory','accessory'] },
+      { short: '拉', label: '背+二头+后束', patterns: ['vertical_pull','horizontal_pull','accessory','accessory'] },
+      { short: '蹲', label: '下肢全面', patterns: ['squat','hinge','carry','core'] },
+    ]
+  },
+  brosplit: {
+    name: '五分化', minDays: 5, maxDays: 6,
+    days: [
+      { short: '胸', label: '胸部+三头', patterns: ['horizontal_push','accessory','accessory'] },
+      { short: '背', label: '背部+二头', patterns: ['vertical_pull','horizontal_pull','accessory'] },
+      { short: '肩', label: '肩部+腹肌', patterns: ['vertical_push','accessory','core','accessory'] },
+      { short: '腿', label: '下肢全面', patterns: ['squat','hinge','carry','core'] },
+      { short: '臂', label: '手臂专项', patterns: ['accessory','accessory','accessory','core'] },
+    ]
+  }
+};
+
+// --- 目标参数映射 ---
+const GOAL_PARAMS = {
+  strength:    { repRange: '3-6',   sets: 4, rest: 150, rpeRange: '8-9',   intensityPct: 85, name: '力量' },
+  hypertrophy: { repRange: '8-12',  sets: 3, rest: 90,  rpeRange: '7-9',   intensityPct: 72.5, name: '增肌' },
+  endurance:   { repRange: '12-20', sets: 3, rest: 45,  rpeRange: '6-7',   intensityPct: 55, name: '耐力' },
+  general:     { repRange: '6-12',  sets: 3, rest: 90,  rpeRange: '7-8',   intensityPct: 70, name: '综合' },
+};
+
+// --- 周循环周期化参数 (4周小周期) ---
+const CYCLE_MODIFIERS = [
+  null,
+  { name: '适应', setsMul: 0.85, repBias: 2, rpeAdj: -0.5 },
+  { name: '负荷', setsMul: 1.0,  repBias: 0, rpeAdj: 0 },
+  { name: '冲击', setsMul: 1.15, repBias: -2, rpeAdj: 0.5 },
+  { name: '减量', setsMul: 0.6,  repBias: 4, rpeAdj: -1 },
+];
+
+// --- 简单确定性哈希 ---
+function hashCode(s) { let h=0; for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0;} return Math.abs(h); }
+
+// --- 器材匹配检查 ---
+function equipmentMatches(ex, equipSetting) {
+  if (equipSetting === 'full_gym') return true;
+  if (equipSetting === 'barbell_dumbbell') return ex.equipment.some(e => ['barbell','dumbbell','bodyweight'].includes(e));
+  if (equipSetting === 'bodyweight') return ex.equipment.some(e => ['bodyweight','bands'].includes(e));
+  if (equipSetting === 'bands') return ex.equipment.some(e => ['bands','bodyweight'].includes(e));
+  return true;
+}
+
+// --- 选择训练分化 ---
+function selectSplit(daysPerWeek, experience) {
+  if (daysPerWeek <= 3) return 'fullbody';
+  if (daysPerWeek === 4) return 'upperlower';
+  if (experience === 'advanced' && daysPerWeek >= 5) return 'brosplit';
+  return 'ppl';
+}
+
+// --- 生成一周的训练日程 ---
+function generateSchedule(settings) {
+  const splitKey = selectSplit(settings.daysPerWeek, settings.experience);
+  const template = SPLIT_TEMPLATES[splitKey];
+  const n = settings.daysPerWeek;
+  const days = {};
+
+  for (let i = 0; i < n; i++) {
+    const tplDay = template.days[i % template.days.length];
+    const availableDays = Object.entries(settings.trainingDays)
+      .filter(([wd, enabled]) => enabled && parseInt(wd) > 0)
+      .map(([wd]) => parseInt(wd))
+      .sort();
+    let wd;
+    if (availableDays.length >= n) {
+      wd = availableDays[i % availableDays.length];
+    } else if (availableDays.length > 0) {
+      wd = availableDays[i % availableDays.length];
+    } else {
+      wd = ((i) % 6) + 1;
+    }
+
+    const dayKey = 'day' + (i + 1);
+    days[dayKey] = {
+      weekday: wd,
+      label: ['','周一','周二','周三','周四','周五','周六','周日'][wd],
+      short: tplDay.short,
+      name: tplDay.label,
+      focus: tplDay.patterns.slice(0,2).join('+'),
+      location: 'gym',
+      _patterns: tplDay.patterns,
+      _splitName: template.name
+    };
+  }
+  return { schedule: days, splitKey, splitName: template.name, dayCount: n };
+}
+
+
+// --- 目标权重：不同目标优先选择不同类型的动作 ---
+// 权重 = 器材分(0-4) + 动作类型分(0-3)，分数越高越靠前
+function goalWeight(ex, goal) {
+  let equipScore = 0, typeScore = 0;
+  const hasBarbell = ex.equipment.includes('barbell');
+  const hasDumbbell = ex.equipment.includes('dumbbell');
+  const hasMachine = ex.equipment.includes('machine') || ex.equipment.includes('cable');
+  const hasBody = ex.equipment.includes('bodyweight');
+  const hasBand = ex.equipment.includes('bands');
+
+  if (goal === 'strength') {
+    // 力量：杠铃 > 哑铃 > 器械 > 自重/弹力带
+    if (hasBarbell) equipScore = 4;
+    else if (hasDumbbell) equipScore = 3;
+    else if (hasMachine) equipScore = 2;
+    else if (hasBody || hasBand) equipScore = 1;
+    // 类型：复合主项 > 复合辅项 > 孤立 > 其它
+    if (ex.mechanic === 'compound' && ex.category === 'main') typeScore = 3;
+    else if (ex.mechanic === 'compound') typeScore = 2;
+    else if (ex.mechanic === 'isolation') typeScore = 1;
+  } else if (goal === 'hypertrophy') {
+    // 增肌：杠铃/哑铃 > 器械/绳索 > 自重 > 弹力带
+    if (hasBarbell || hasDumbbell) equipScore = 4;
+    else if (hasMachine) equipScore = 3;
+    else if (hasBody) equipScore = 2;
+    else if (hasBand) equipScore = 1;
+    // 类型：主项=孤立辅助 > 复合辅项 > 纠正 > 核心
+    if (ex.category === 'main') typeScore = 3;
+    else if (ex.category === 'accessory' && ex.mechanic === 'isolation') typeScore = 3;
+    else if (ex.category === 'accessory') typeScore = 2;
+    else if (ex.category === 'corrective') typeScore = 1;
+  } else if (goal === 'endurance') {
+    // 耐力：自重 > 弹力带 > 器械 > 哑铃 > 杠铃（高次数安全优先）
+    if (hasBody) equipScore = 4;
+    else if (hasBand) equipScore = 3;
+    else if (hasMachine) equipScore = 2;
+    else if (hasDumbbell) equipScore = 1;
+    // 类型：核心/纠正/孤立 > 复合（高次数下孤立更安全）
+    if (ex.category === 'core' || ex.category === 'corrective') typeScore = 3;
+    else if (ex.mechanic === 'isolation') typeScore = 2;
+    else if (ex.category === 'main') typeScore = 1;
+  } else { // general: 均衡
+    if (hasBarbell || hasDumbbell) equipScore = 4;
+    else if (hasMachine) equipScore = 3;
+    else if (hasBody) equipScore = 2;
+    else if (hasBand) equipScore = 1;
+    if (ex.category === 'main') typeScore = 3;
+    else if (ex.category === 'accessory') typeScore = 2;
+    else if (ex.category === 'core' || ex.category === 'corrective') typeScore = 1;
+  }
+  return equipScore + typeScore;
+}
+// --- 从动作库按模式+器材+水平筛选 ---
+function filterByPattern(pattern, equipment, experience, goal, weekSeed, dayIdx, patIdx) {
+  const candidates = EXERCISE_DB.filter(ex => {
+    if (pattern === 'accessory') {
+      return ex.movementPattern !== 'carry' && equipmentMatches(ex, equipment) &&
+        (ex.mechanic === 'isolation' || ex.category === 'accessory' || ex.category === 'corrective');
+    }
+    if (pattern === 'core') {
+      return ex.movementPattern === 'core' && equipmentMatches(ex, equipment);
+    }
+    if (pattern === 'carry') {
+      return ex.movementPattern === 'carry' && equipmentMatches(ex, equipment);
+    }
+    return ex.movementPattern === pattern && ex.mechanic === 'compound' && equipmentMatches(ex, equipment);
+  });
+
+  let filtered = candidates;
+  if (experience === 'beginner') {
+    filtered = candidates.filter(ex => ex.level === 'beginner' || ex.level === 'intermediate');
+  }
+  if (experience === 'intermediate') {
+    filtered = candidates.filter(ex => ex.level !== 'advanced');
+  }
+
+  const seed = hashCode('' + weekSeed + dayIdx + patIdx);
+  filtered.sort((a, b) => {
+    const wa = goalWeight(a, goal);
+    const wb = goalWeight(b, goal);
+    if (wa !== wb) return wb - wa; // 权重高的靠前
+    return hashCode(a.id + seed) - hashCode(b.id + seed);
+  });
+
+  return filtered;
+}
+
+// --- 生成一天的训练 ---
+function generateDayPlan(dayKey, weekNumber, settings, excludeIds) {
+  const schedule = generateSchedule(settings);
+  const dayInfo = schedule.schedule[dayKey];
+  if (!dayInfo) return null;
+
+  const goalParams = GOAL_PARAMS[settings.goal] || GOAL_PARAMS.hypertrophy;
+  const cycleWeek = ((weekNumber - 1) % 4) + 1;
+  const cycleMod = CYCLE_MODIFIERS[cycleWeek];
+  const isDeload = (cycleWeek === 4);
+
+  const exercises = [];
+  const usedExIds = new Set(excludeIds || []);
+
+  // Session length: limit number of patterns (exercises)
+  const sl = settings.sessionLength || 60;
+  let patternLimit = dayInfo._patterns.length;
+  if (sl <= 30) patternLimit = Math.max(2, Math.ceil(dayInfo._patterns.length * 0.5));
+  else if (sl <= 45) patternLimit = Math.max(3, Math.ceil(dayInfo._patterns.length * 0.75));
+  // 60 min = all, 90 min = all
+  const activePatterns = dayInfo._patterns.slice(0, patternLimit);
+
+  activePatterns.forEach((pattern, patIdx) => {
+    const candidates = filterByPattern(pattern, settings.equipment, settings.experience, settings.goal, weekNumber, parseInt(dayKey.replace('day','')), patIdx);
+
+    let picked = null;
+    for (const ex of candidates) {
+      if (!usedExIds.has(ex.id)) {
+        picked = ex;
+        usedExIds.add(ex.id);
+        break;
+      }
+    }
+    if (!picked && candidates.length > 0) {
+      picked = candidates[0];
+    }
+    if (!picked) return;
+
+    const rawSets = goalParams.sets;
+    let sets = Math.round(rawSets * cycleMod.setsMul);
+    sets = Math.max(isDeload ? 2 : 3, Math.min(sets, isDeload ? 4 : 6));
+
+    const repParts = goalParams.repRange.split('-').map(Number);
+    const repBias = cycleMod.repBias;
+    const lowRep = Math.max(1, repParts[0] + repBias);
+    const highRep = Math.max(lowRep + 1, (repParts[1] || repParts[0]) + repBias);
+    const reps = lowRep === highRep ? String(lowRep) : lowRep + '-' + highRep;
+
+    const rpeParts = goalParams.rpeRange.split('-').map(Number);
+    const rpeLow = Math.max(5, (rpeParts[0] || 6) + cycleMod.rpeAdj);
+    const rpeHigh = Math.max(rpeLow, (rpeParts[1] || rpeParts[0]) + cycleMod.rpeAdj);
+    const rpe = rpeLow === rpeHigh ? String(rpeLow) : rpeLow + '-' + rpeHigh;
+
+    const rest = goalParams.rest;
+
+    let cat = '辅项';
+    if (picked.category === 'main') cat = '主项';
+    if (picked.category === 'corrective') cat = '纠正';
+    if (picked.category === 'core') cat = '核心';
+
+    exercises.push({
+      id: picked.id.replace(/[^a-z0-9_]/g, '_').slice(0, 4),
+      name: picked.name,
+      cat,
+      sets,
+      reps,
+      rest,
+      rpe,
+      note: picked.note || '',
+      _exDbId: picked.id
+    });
+  });
+
+  return {
+    dayInfo: {
+      weekday: dayInfo.weekday,
+      label: dayInfo.label,
+      short: dayInfo.short,
+      name: dayInfo.name,
+      focus: dayInfo.focus,
+      location: dayInfo.location,
+      _splitName: dayInfo._splitName,
+    },
+    exercises,
+    warmup: goalParams.name === '力量'
+      ? 'RAMP热身：跳绳3分钟 → 动态拉伸5分钟 → 轻热身组2分钟'
+      : 'RAMP热身：跳绳/风阻单车3分钟 → 臀桥+开合+肩环绕+猫牛式5分钟 → 髋/胸椎/踝关节环绕5分钟 → 轻热身组2分钟',
+    isDeload,
+    cycleWeek,
+    splitName: schedule.splitName,
+  };
+}
 
 // ============================================================================
 // 应用状态
 // ============================================================================
+
 const STORAGE_KEY = 'fitness_training_data';
 const SETTINGS_KEY = 'fitness_settings';
 
@@ -828,7 +1311,13 @@ function loadSettings() {
   const def = {
     startDate: '2026-06-30',
     trainingDays: { 1: true, 2: true, 4: true, 5: true, 6: true }, // Mon, Tue, Thu, Fri, Sat
-    oneRM: {}  // 用户各动作极限重量，如 { bench:80, squat:100, ... }
+    oneRM: {},  // 用户各动作极限重量，如 { bench:80, squat:100, ... }
+    // 动态训练生成参数
+    goal: 'hypertrophy',        // strength | hypertrophy | endurance | general
+    equipment: 'full_gym',      // full_gym | barbell_dumbbell | bodyweight | bands
+    experience: 'intermediate', // beginner | intermediate | advanced
+    daysPerWeek: 5,            // 2-6
+    sessionLength: 60          // 30 | 45 | 60 | 90 分钟
   };
   try { return { ...def, ...JSON.parse(localStorage.getItem(SETTINGS_KEY)) }; }
   catch { return def; }
@@ -841,10 +1330,12 @@ let appState = {
   selectedDay: 'day1',
   selectedWeek: 1,
   selectedPhase: 0, // index into PLAN.phases
+  readiness: 'high', // high | medium | low — 每日状态，不持久化
 };
 let currentTrainingDate = null;  // 当前渲染的训练日日期
 let currentDayId = null;         // 当前渲染的训练日 ID
-let warmupCollapsed = true;          // 热身块折叠状态（跨渲染保持）
+let warmupCollapsed = true;
+let _settingsInited = false;     // renderSettingsView 一次性绑定标记          // 热身块折叠状态（跨渲染保持）
 
 // ============================================================================
 // 工具函数
@@ -949,7 +1440,7 @@ function getProgressionHint(matchResult, dayId, currentWeek, allData) {
   // 查找上一周同一天的记录
   const prevWeek = currentWeek - 1;
   const startDate = settings.startDate;
-  const dayInfo = PLAN.schedule[dayId];
+  const dayInfo = generateSchedule(settings).schedule[dayId];
   if (!dayInfo) return null;
   const prevWeekStart = dateAddDays(startDate, (prevWeek - 1) * 7);
   const prevWeekStartWD = getWeekdayNum(prevWeekStart);
@@ -962,11 +1453,10 @@ function getProgressionHint(matchResult, dayId, currentWeek, allData) {
   for (const [exId, record] of Object.entries(prevSession.exercises)) {
     const sets = record.sets || [];
     if (sets.length === 0) continue;
-    // Check if this exId name matches (need to look up from PLAN)
-    const phaseIdx = getPhaseForWeek(prevWeek);
-    const dayData = PLAN.phases[phaseIdx]?.days[dayId];
-    if (!dayData) continue;
-    const exDef = dayData.exercises.find(e => e.id === exId);
+    // Check if this exId name matches (look up from generated plan)
+    const prevDayData = generateDayPlan(dayId, prevWeek, settings);
+    if (!prevDayData) continue;
+    const exDef = prevDayData.exercises.find(e => e.id === exId);
     if (!exDef) continue;
     const exMatch = matchExerciseTo1RM(exDef.name, settings.oneRM);
     if (exMatch && exMatch.key === matchResult.key) {
@@ -982,24 +1472,28 @@ function getProgressionHint(matchResult, dayId, currentWeek, allData) {
 }
 
 function getCurrentWeek() {
-  // Calculate based on start date
   const start = settings.startDate;
   const today = getTodayStr();
   const diff = diffDays(start, today);
   if (diff < 0) return 1;
-  return Math.min(Math.floor(diff / 7) + 1, 12);
+  return Math.max(1, Math.floor(diff / 7) + 1);
 }
 
 function getPhaseForWeek(week) {
-  for (let i = 0; i < PLAN.phases.length; i++) {
-    if (PLAN.phases[i].weeks.includes(week)) return i;
-  }
-  return 0;
+  // Dynamic system: phase is derived from 4-week cycle blocks (0-indexed)
+  return Math.floor((week - 1) / 4);
 }
 
-function getDayData(phaseIdx, dayId) {
-  const phase = PLAN.phases[phaseIdx];
-  return phase.days[dayId] || null;
+function getGoalLabel(goal) {
+  const map = { strength: '力量期', hypertrophy: '增肌期', endurance: '耐力期', general: '综合体能期' };
+  return map[goal] || '增肌期';
+}
+
+function getDayData(phaseIdx, dayId, week) {
+  // Dynamic generation — phaseIdx is ignored; dayId + week + settings determine the plan
+  const w = (week !== undefined && week > 0) ? week : appState.selectedWeek;
+  const result = generateDayPlan(dayId, w, settings);
+  return result;
 }
 
 // ============================================================================
@@ -1007,7 +1501,8 @@ function getDayData(phaseIdx, dayId) {
 // ============================================================================
 function getTrainingDayForDate(dateStr) {
   const wd = getWeekdayNum(dateStr);
-  for (const [key, day] of Object.entries(PLAN.schedule)) {
+  const schedule = generateSchedule(settings).schedule;
+  for (const [key, day] of Object.entries(schedule)) {
     if (day.weekday === wd && settings.trainingDays[wd]) {
       return key;
     }
@@ -1023,10 +1518,13 @@ function renderDayNav() {
   const todayStr = getTodayStr();
   const todayDay = getTrainingDayForDate(todayStr);
 
-  const dayIcons = { day1: '🔵', day2: '🟢', day3: '🦵', day4: '🟠', day5: '🔴' };
+  const dayIcons = { day1: '🔵', day2: '🟢', day3: '🦵', day4: '🟠', day5: '🔴', day6: '🟣' };
+
+  // Dynamic schedule based on settings
+  const dynamicSchedule = generateSchedule(settings);
+  const allEntries = Object.entries(dynamicSchedule.schedule);
 
   // 根据 settings.trainingDays 过滤：只显示被勾选的训练日
-  const allEntries = Object.entries(PLAN.schedule);
   const activeEntries = allEntries.filter(([key, day]) => settings.trainingDays[day.weekday]);
 
   // 兜底：如果全部取消勾选，显示所有训练日避免空白
@@ -1044,7 +1542,7 @@ function renderDayNav() {
     let cls = '';
     if (isActive) cls += ' active';
     if (isToday && !isActive) cls += ' today';
-    html += `<button class="${cls}" data-day="${key}"><span style="font-size:1.1rem;">${dayIcons[key]||''}</span> ${day.short}<br><small>${day.label}</small></button>`;
+    html += `<button class="${cls}" data-day="${key}"><span style="font-size:1.1rem;">${dayIcons[key]||'🏋️'}</span> ${day.short}<br><small>${day.name}</small></button>`;
   }
   nav.innerHTML = html;
 
@@ -1059,11 +1557,13 @@ function renderDayNav() {
 
 function renderHeader() {
   const week = appState.selectedWeek;
-  const phaseIdx = getPhaseForWeek(week);
-  const phase = PLAN.phases[phaseIdx];
+  const cycleWeek = ((week - 1) % 4) + 1;
+  const cycleNames = ['','适应周','负荷周','冲击周','减量周'];
+  const isDeload = cycleWeek === 4;
 
-  document.getElementById('phaseBadge').textContent = `阶段${phaseIdx+1}：${phase.name}`;
-  document.getElementById('weekLabel').textContent = `第${week}周${week === phase.deloadWeek ? ' (减量周)' : ''}`;
+  const goalLabel = getGoalLabel(settings.goal);
+  document.getElementById('phaseBadge').textContent = goalLabel;
+  document.getElementById('weekLabel').textContent = `第${week}周 · ${cycleNames[cycleWeek]}${isDeload ? ' (减量)' : ''}`;
 
   const todayStr = getTodayStr();
   const todayDay = getTrainingDayForDate(todayStr);
@@ -1081,11 +1581,14 @@ function renderHeader() {
 
 function renderTrainingView() {
   const week = appState.selectedWeek;
-  const phaseIdx = getPhaseForWeek(week);
-  const phase = PLAN.phases[phaseIdx];
   const dayId = appState.selectedDay;
-  const dayInfo = PLAN.schedule[dayId];
-  const dayData = phase.days[dayId];
+
+  // Dynamic generation
+  const planResult = generateDayPlan(dayId, week, settings);
+
+  // Get dayInfo from dynamic schedule
+  const dynamicSchedule = generateSchedule(settings);
+  const dayInfo = dynamicSchedule.schedule[dayId];
 
   // 如果该训练日对应的星期几未被勾选（属于用户标记的非训练日）
   if (dayInfo && !settings.trainingDays[dayInfo.weekday]) {
@@ -1102,7 +1605,7 @@ function renderTrainingView() {
     return;
   }
 
-  if (!dayData) {
+  if (!planResult || !planResult.exercises || planResult.exercises.length === 0) {
     document.getElementById('exerciseList').innerHTML = '<div class="empty-state"><div class="icon">🏖️</div>休息日</div>';
     document.getElementById('dayTitle').textContent = dayInfo ? `${dayInfo.short}：${dayInfo.name}` : '休息日';
     document.getElementById('dayLocation').textContent = '健身房';
@@ -1122,7 +1625,7 @@ function renderTrainingView() {
 
   // Calculate what date this training day falls on
   const startDate = settings.startDate;
-  const dayWeekday = dayInfo.weekday; // 1=Mon, 2=Tue, etc.
+  const dayWeekday = dayInfo.weekday;
   const weekStart = dateAddDays(startDate, (week - 1) * 7);
   const weekStartWD = getWeekdayNum(weekStart);
   const daysToAdd = (dayWeekday - weekStartWD + 7) % 7;
@@ -1133,8 +1636,9 @@ function renderTrainingView() {
   currentTrainingDate = trainingDate;
   currentDayId = dayId;
 
-  // Warmup — 可折叠 RAMP 步骤列表
-  const warmupSteps = phase.warmup
+  // Warmup — from generated plan
+  const warmupText = planResult.warmup || '';
+  const warmupSteps = warmupText
     .replace(/^RAMP热身：/, '')
     .split('→')
     .map(s => s.trim())
@@ -1146,9 +1650,16 @@ function renderTrainingView() {
     </div>`;
   if (warmupCollapsed) document.getElementById('warmupBlock').classList.add('collapsed');
 
-  // Exercises
-  let html = '';
-  const exercises = dayData.exercises;
+  // Exercises — apply readiness adjustment
+  let exercises = planResult.exercises;
+  const readiness = appState.readiness || 'high';
+  if (readiness === 'medium') {
+    exercises = exercises.map(ex => ({ ...ex, sets: Math.max(2, ex.sets - 1) }));
+  } else if (readiness === 'low') {
+    // Light recovery: only 3 bodyweight-focused exercises, low volume
+    exercises = exercises.slice(0, 3).map(ex => ({ ...ex, sets: 2, rpe: '5-6', note: (ex.note||'') + ' [恢复日 - 轻量]' }));
+  }
+  const isDeload = planResult.isDeload;
 
   // Check if there's saved data for this date+day
   const allData = loadData();
@@ -1156,11 +1667,11 @@ function renderTrainingView() {
     ? allData[trainingDate][dayId]
     : null;
 
+  let html = '';
   let completedCount = 0;
 
   exercises.forEach((ex, idx) => {
     const catClass = ex.cat === '核心' ? 'core' : ex.cat === '纠正' ? 'correct' : '';
-    const supersetNote = ex.superset ? '<div class="ex-superset">🔗 超级组</div>' : '';
 
     // Check if this exercise has saved records
     let savedRecord = null;
@@ -1173,7 +1684,6 @@ function renderTrainingView() {
     if (hasRecords) completedCount++;
 
     // 推荐重量计算
-    const isDeload = (week === phase.deloadWeek);
     const rmMatch = matchExerciseTo1RM(ex.name, settings.oneRM);
     let recHtml = '', recText = null;
     if (rmMatch) {
@@ -1188,11 +1698,10 @@ function renderTrainingView() {
     }
 
     html += `
-    <div class="exercise-card${ex.superset ? ' superset-card' : ''}${hasRecords ? ' expanded' : ''}" data-ex-id="${ex.id}">
+    <div class="exercise-card${hasRecords ? ' expanded' : ''}" data-ex-id="${ex.id}">
       <div class="ex-top">
         <div>
           <span class="ex-name">${idx+1}. ${ex.name}</span>
-          ${supersetNote}
         </div>
         <span class="ex-cat ${catClass}">${ex.cat}</span>
         ${hasRecords ? '<span style="font-size:0.8rem;margin-left:4px;">✅</span>' : ''}
@@ -1330,7 +1839,7 @@ function renderHistoryView() {
       const days = Object.keys(allData[date]);
       days.forEach(dayId => {
         const session = allData[date][dayId];
-        const dayInfo = PLAN.schedule[dayId];
+        const dayInfo = generateSchedule(settings).schedule[dayId];
         const exCount = Object.keys(session.exercises).length;
         const totalSets = Object.values(session.exercises).reduce((s, ex) => s + (ex.sets ? ex.sets.length : 0), 0);
         const recordedEx = Object.values(session.exercises).filter(ex => ex.sets && ex.sets.some(s => s.weight || s.reps || s.rpe)).length;
@@ -1356,12 +1865,11 @@ function showHistoryDetail(dateStr, dayId) {
   const session = allData[dateStr] && allData[dateStr][dayId];
   if (!session) return;
 
-  const dayInfo = PLAN.schedule[dayId];
+  const dayInfo = generateSchedule(settings).schedule[dayId];
 
-  // Find the phase for this date
+  // Find the week for this date and generate plan
   const week = Math.floor(diffDays(settings.startDate, dateStr) / 7) + 1;
-  const phaseIdx = getPhaseForWeek(Math.max(1, Math.min(12, week)));
-  const dayData = getDayData(phaseIdx, dayId);
+  const dayData = getDayData(0, dayId, week); // pass the historical week, not the current selected week
 
   let html = `
     <button class="close-btn" id="closeHistory">✕</button>
@@ -1401,55 +1909,98 @@ function showHistoryDetail(dateStr, dayId) {
 }
 
 function renderSettingsView() {
-  document.getElementById('startDateInput').value = settings.startDate;
+  document.getElementById("startDateInput").value = settings.startDate;
 
-  const weekdays = ['周日','周一','周二','周三','周四','周五','周六'];
-  let checksHtml = '';
+  const weekdays = ["周日","周一","周二","周三","周四","周五","周六"];
+  let checksHtml = "";
   for (let i = 0; i < 7; i++) {
     const checked = settings.trainingDays[i] || false;
-    checksHtml += `<span class="day-check${checked ? ' checked' : ''}" data-wd="${i}">${weekdays[i]}</span>`;
+    checksHtml += `<span class="day-check${checked ? " checked" : ""}" data-wd="${i}">${weekdays[i]}</span>`;
   }
-  document.getElementById('weekdayChecks').innerHTML = checksHtml;
-
-  // Handlers
-  document.getElementById('startDateInput').addEventListener('change', function() {
-    settings.startDate = this.value;
-    saveSettings(settings);
-    appState.selectedWeek = getCurrentWeek();
-    renderAll();
-  });
-
-  document.querySelectorAll('.day-check').forEach(check => {
-    check.addEventListener('click', function() {
+  document.getElementById("weekdayChecks").innerHTML = checksHtml;
+  document.querySelectorAll(".day-check").forEach(check => {
+    check.addEventListener("click", function() {
       const wd = parseInt(this.dataset.wd);
       settings.trainingDays[wd] = !settings.trainingDays[wd];
       saveSettings(settings);
-      this.classList.toggle('checked');
+      this.classList.toggle("checked");
       renderAll();
     });
   });
 
-  document.getElementById('exportBtn').addEventListener('click', () => {
-    const data = loadData();
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `训练记录_${getTodayStr()}.json`;
-    a.click(); URL.revokeObjectURL(url);
-  });
+  // One-time bindings to avoid duplicate event listeners
+  function bindSelect(id, key, renderCb) {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.value = settings[key];
+    sel.addEventListener("change", function() {
+      settings[key] = this.value;
+      saveSettings(settings);
+      if (renderCb) renderCb();
+      else { renderDayNav(); renderTrainingView(); renderHeader(); }
+    });
+  }
 
-  document.getElementById('clearBtn').addEventListener('click', () => {
-    if (confirm('确定要清除所有训练记录吗？此操作不可撤销。')) {
-      saveData({});
+  if (!_settingsInited) {
+    // Static elements — bind once
+    document.getElementById("startDateInput").addEventListener("change", function() {
+      settings.startDate = this.value;
+      saveSettings(settings);
+      appState.selectedWeek = getCurrentWeek();
       renderAll();
-    }
-  });
+    });
 
-  // 1RM 极限重量输入
-  const rmGrid = document.getElementById('oneRmGrid');
-  let rmHtml = '';
+    document.getElementById("exportBtn").addEventListener("click", () => {
+      const data = loadData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `训练记录_${getTodayStr()}.json`;
+      a.click(); URL.revokeObjectURL(url);
+    });
+
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      if (confirm("确定要清除所有训练记录吗？此操作不可撤销。")) {
+        saveData({});
+        renderAll();
+      }
+    });
+
+    // Training preferences binds
+    bindSelect("goalSelect", "goal");
+    bindSelect("equipmentSelect", "equipment");
+    bindSelect("frequencySelect", "daysPerWeek", function() {
+      settings.daysPerWeek = parseInt(settings.daysPerWeek);
+      saveSettings(settings);
+      const schedule = generateSchedule(settings).schedule;
+      const keys = Object.keys(schedule);
+      if (!keys.includes(appState.selectedDay)) {
+        appState.selectedDay = keys[0];
+      }
+      renderAll();
+    });
+    bindSelect("experienceSelect", "experience");
+    bindSelect("sessionLengthSelect", "sessionLength", function() {
+      settings.sessionLength = parseInt(settings.sessionLength);
+      saveSettings(settings);
+      renderTrainingView();
+    });
+
+    _settingsInited = true;
+  } else {
+    // Sync select values with current settings (no new listeners)
+    document.getElementById("goalSelect").value = settings.goal;
+    document.getElementById("equipmentSelect").value = settings.equipment;
+    document.getElementById("frequencySelect").value = settings.daysPerWeek;
+    document.getElementById("experienceSelect").value = settings.experience;
+    document.getElementById("sessionLengthSelect").value = settings.sessionLength;
+  }
+
+  // 1RM grid (DOM rebuilt each call, old listeners destroyed)
+  const rmGrid = document.getElementById("oneRmGrid");
+  let rmHtml = "";
   ONE_RM_DEFS.forEach(def => {
-    const val = settings.oneRM[def.key] || '';
+    const val = settings.oneRM[def.key] || "";
     rmHtml += `<div class="one-rm-item">
       <label>${def.label}</label>
       <input type="number" placeholder="1RM" value="${val}" data-rm="${def.key}" step="2.5" min="0">
@@ -1457,17 +2008,18 @@ function renderSettingsView() {
     </div>`;
   });
   rmGrid.innerHTML = rmHtml;
-  rmGrid.querySelectorAll('input').forEach(inp => {
-    inp.addEventListener('change', function() {
+  rmGrid.querySelectorAll("input").forEach(inp => {
+    inp.addEventListener("change", function() {
       const key = this.dataset.rm;
       const v = parseFloat(this.value);
       if (v > 0) { settings.oneRM[key] = v; }
       else { delete settings.oneRM[key]; }
       saveSettings(settings);
-      renderTrainingView(); // 刷新训练视图以更新推荐重量
+      renderTrainingView();
     });
   });
 }
+
 
 // ============================================================================
 // 事件委托 — 一次性绑定，处理动态训练表单的所有交互
@@ -1496,6 +2048,24 @@ function updateCompletionBar() {
 
 function setupTrainingDelegation() {
   const tv = document.getElementById('trainingView');
+
+  // 每日状态条点击处理
+  const rb = document.getElementById('readinessBar');
+  if (rb) {
+    rb.querySelectorAll('.readiness-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        rb.querySelectorAll('.readiness-btn').forEach(b => {
+          b.className = 'readiness-btn';
+        });
+        const level = this.dataset.level;
+        if (level === 'high') this.className = 'readiness-btn active-green';
+        else if (level === 'medium') this.className = 'readiness-btn active-yellow';
+        else this.className = 'readiness-btn active-red';
+        appState.readiness = level;
+        renderTrainingView();
+      });
+    });
+  }
 
   // 点击委托
   tv.addEventListener('click', function(e) {
@@ -1632,16 +2202,13 @@ document.querySelectorAll('.bottom-nav button').forEach(btn => {
 document.getElementById('prevWeek').addEventListener('click', () => {
   if (appState.selectedWeek > 1) {
     appState.selectedWeek--;
-    appState.selectedPhase = getPhaseForWeek(appState.selectedWeek);
     renderAll();
   }
 });
 document.getElementById('nextWeek').addEventListener('click', () => {
-  if (appState.selectedWeek < 12) {
-    appState.selectedWeek++;
-    appState.selectedPhase = getPhaseForWeek(appState.selectedWeek);
-    renderAll();
-  }
+  // Dynamic system: no upper week limit (用户可持续使用超过 12 周)
+  appState.selectedWeek++;
+  renderAll();
 });
 
 	document.getElementById('todayBtn').addEventListener('click', () => {
@@ -1649,7 +2216,6 @@ document.getElementById('nextWeek').addEventListener('click', () => {
 	  const todayDay = getTrainingDayForDate(getTodayStr());
 	  if (todayWeek !== appState.selectedWeek) {
 	    appState.selectedWeek = todayWeek;
-	    appState.selectedPhase = getPhaseForWeek(appState.selectedWeek);
 	  }
 	  if (todayDay) appState.selectedDay = todayDay;
 	  renderAll();
@@ -1806,7 +2372,6 @@ function init() {
   setupPwaUpdate();
 
   appState.selectedWeek = getCurrentWeek();
-  appState.selectedPhase = getPhaseForWeek(appState.selectedWeek);
 
   // Auto-select today's training day
   const todayDay = getTrainingDayForDate(getTodayStr());
